@@ -122,6 +122,8 @@ endif()
 list(APPEND SOURCE_CONSOLE_BOOK
     book/bootstrap.cc
     book/bootstrap.h
+    book/book_controller.cc
+    book/book_controller.h
     book/entry_guid.cc
     book/entry_guid.h
     book/flat_book.cc
