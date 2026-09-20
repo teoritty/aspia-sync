@@ -22,6 +22,8 @@
 #include "base/macros_magic.h"
 #include "client/router_config.h"
 #include "client/online_checker/online_checker.h"
+#include "console/book/book_controller.h"
+#include "console/book/book_sync.h"
 #include "proto/address_book.pb.h"
 #include "ui_address_book_tab.h"
 
@@ -34,7 +36,10 @@ class ComputerItem;
 
 class AddressBookTab final
     : public QWidget,
-      public client::OnlineChecker::Delegate
+      public client::OnlineChecker::Delegate,
+      public BookController::Delegate,
+      public BookSync::Sender,
+      public BookSync::Observer
 {
     Q_OBJECT
 
@@ -63,6 +68,33 @@ public:
     bool isRouterEnabled() const;
     std::optional<client::RouterConfig> routerConfig() const;
 
+    //----------------------------------------------------------------------------------------------
+    // Synchronization.
+    //----------------------------------------------------------------------------------------------
+
+    bool isSyncEnabled() const;
+    QString syncBookGuid() const;
+
+    // Turns synchronization on for this book and starts it. |passphrase| is what the shared key is
+    // derived from; it is not written to the file.
+    bool enableSync(const QString& book_guid, const QString& salt, const QString& verifier,
+                    const QString& passphrase);
+
+    // Turns it off. The book stays exactly as it is and becomes an ordinary local file again.
+    void disableSync();
+
+    // What to show in the status bar.
+    struct SyncStatus
+    {
+        bool enabled = false;
+        bool connected = false;
+        bool stopped = false;
+        int pending = 0;
+        int conflicts = 0;
+    };
+
+    SyncStatus syncStatus() const;
+
     void retranslateUi();
 
 public slots:
@@ -79,6 +111,7 @@ public slots:
 
 signals:
     void sig_addressBookChanged(bool changed);
+    void sig_syncStatusChanged();
     void sig_computerGroupActivated(bool activated, bool is_root);
     void sig_computerActivated(bool activated);
     void sig_computerGroupContextMenu(const QPoint& point, bool is_root);
@@ -87,6 +120,25 @@ signals:
     void sig_updateStateForComputers(bool started);
 
 protected:
+    // BookController::Delegate implementation.
+    void onBookConnected() final;
+    void onBookDisconnected() final;
+    void onBookAuthFailed() final;
+    void onBookList(const proto::BookList& message) final;
+    void onBookPull(const proto::BookPull& message) final;
+    void onBookPushResult(const proto::BookPushResult& message) final;
+    void onBookChanged(const proto::BookChanged& message) final;
+
+    // BookSync::Sender implementation.
+    void sendPull(const proto::BookPullRequest& request) final;
+    void sendPush(const proto::BookPushRequest& request) final;
+
+    // BookSync::Observer implementation.
+    void onBookUpdated() final;
+    void onConflicts(const std::vector<std::string>& guids) final;
+    void onSyncStopped(SyncEngine::PullOutcome::Status reason) final;
+    void onInSync(int64_t revision) final;
+
     // ConsoleTab implementation.
     void showEvent(QShowEvent* event) final;
     void keyPressEvent(QKeyEvent* event) final;
@@ -133,6 +185,17 @@ private:
     bool is_changed_ = false;
 
     std::unique_ptr<client::OnlineChecker> online_checker_;
+
+    // Present only while the book is synchronized. Both are dropped when it is switched off, which
+    // is also what stops the exchange.
+    std::unique_ptr<BookController> book_controller_;
+    std::unique_ptr<BookSync> book_sync_;
+
+    bool sync_connected_ = false;
+    bool sync_stopped_ = false;
+
+    void startSyncIfEnabled();
+    void autoSave();
 
     DISALLOW_COPY_AND_ASSIGN(AddressBookTab);
 };

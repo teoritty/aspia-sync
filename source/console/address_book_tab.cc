@@ -28,6 +28,7 @@
 #include "client/online_checker/online_checker.h"
 #include "console/address_book_dialog.h"
 #include "console/book/entry_guid.h"
+#include "console/book/sync_key.h"
 #include "console/computer_dialog.h"
 #include "console/computer_factory.h"
 #include "console/computer_group_dialog.h"
@@ -1119,6 +1120,233 @@ void AddressBookTab::setChanged(bool value)
 {
     is_changed_ = value;
     emit sig_addressBookChanged(value);
+}
+
+//--------------------------------------------------------------------------------------------------
+bool AddressBookTab::isSyncEnabled() const
+{
+    return !data_.sync().book_guid().empty();
+}
+
+//--------------------------------------------------------------------------------------------------
+QString AddressBookTab::syncBookGuid() const
+{
+    return QString::fromStdString(data_.sync().book_guid());
+}
+
+//--------------------------------------------------------------------------------------------------
+bool AddressBookTab::enableSync(const QString& book_guid, const QString& salt,
+                                const QString& verifier, const QString& passphrase)
+{
+    const std::string key = deriveSyncKey(passphrase.toStdString(), salt.toStdString());
+    if (key.empty())
+    {
+        LOG(LS_ERROR) << "Unable to derive the synchronization key";
+        return false;
+    }
+
+    // Checked before anything is written. Somebody who mistyped the passphrase would otherwise
+    // seal records with a key nobody else has and send them, and nothing would say whose fault it
+    // was or when it happened.
+    if (!checkKeyVerifier(key, verifier.toStdString()))
+    {
+        LOG(LS_ERROR) << "The passphrase does not match the shared book";
+        return false;
+    }
+
+    std::optional<client::RouterConfig> router = routerConfig();
+    if (!router.has_value())
+    {
+        LOG(LS_ERROR) << "The book has no router to synchronize through";
+        return false;
+    }
+
+    // Every record needs an identity before it can be sent anywhere.
+    ensureEntryGuids(data_.mutable_root_group());
+
+    data_.mutable_sync()->set_book_guid(book_guid.toStdString());
+    data_.mutable_sync()->clear_epoch();
+    data_.mutable_sync()->set_last_pulled_revision(0);
+
+    sync_stopped_ = false;
+
+    book_sync_ = std::make_unique<BookSync>(key, this, this);
+    book_controller_ = std::make_unique<BookController>(
+        router.value(), qt_base::Application::uiTaskRunner());
+    book_controller_->start(this);
+
+    setChanged(true);
+    autoSave();
+
+    emit sig_syncStatusChanged();
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::disableSync()
+{
+    book_controller_.reset();
+    book_sync_.reset();
+
+    sync_connected_ = false;
+    sync_stopped_ = false;
+
+    // What was fetched stays. The book becomes an ordinary local file again, which is the way back
+    // if any of this turns out to be a bad idea.
+    data_.mutable_sync()->Clear();
+
+    setChanged(true);
+    autoSave();
+
+    emit sig_syncStatusChanged();
+}
+
+//--------------------------------------------------------------------------------------------------
+AddressBookTab::SyncStatus AddressBookTab::syncStatus() const
+{
+    SyncStatus status;
+    status.enabled = isSyncEnabled();
+    status.connected = sync_connected_;
+    status.stopped = sync_stopped_;
+
+    if (book_sync_)
+        status.conflicts = static_cast<int>(book_sync_->conflicts().size());
+
+    for (int i = 0; i < data_.sync().entry_size(); ++i)
+    {
+        const proto::address_book::SyncEntryState& state = data_.sync().entry(i);
+        if (state.dirty() || state.deleted())
+            ++status.pending;
+    }
+
+    return status;
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::startSyncIfEnabled()
+{
+    if (!book_sync_ || !sync_connected_ || sync_stopped_)
+        return;
+
+    book_sync_->start(&data_);
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::autoSave()
+{
+    // A synchronized book is not a document somebody remembers to save. An edit that reached the
+    // colleagues but not the disk would come back as a surprise after the next restart, and the
+    // window between the two is exactly what the atomic write was put in for.
+    if (!isSyncEnabled() || file_path_.isEmpty() || !is_changed_)
+        return;
+
+    saveToFile(file_path_);
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onBookConnected()
+{
+    LOG(LS_INFO) << "Address book synchronization is connected";
+
+    sync_connected_ = true;
+    emit sig_syncStatusChanged();
+
+    startSyncIfEnabled();
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onBookDisconnected()
+{
+    sync_connected_ = false;
+    emit sig_syncStatusChanged();
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onBookAuthFailed()
+{
+    sync_connected_ = false;
+    sync_stopped_ = true;
+    emit sig_syncStatusChanged();
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onBookList(const proto::BookList& /* message */)
+{
+    // Asked for only while joining a book, which the wizard drives.
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onBookPull(const proto::BookPull& message)
+{
+    if (book_sync_)
+        book_sync_->onPull(message, &data_);
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onBookPushResult(const proto::BookPushResult& message)
+{
+    if (book_sync_)
+        book_sync_->onPushResult(message, &data_);
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onBookChanged(const proto::BookChanged& message)
+{
+    if (book_sync_)
+        book_sync_->onBookChanged(message, &data_);
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::sendPull(const proto::BookPullRequest& request)
+{
+    if (book_controller_)
+        book_controller_->requestPull(request);
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::sendPush(const proto::BookPushRequest& request)
+{
+    if (book_controller_)
+        book_controller_->requestPush(request);
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onBookUpdated()
+{
+    // What arrived has to reach the disk before it reaches the window: a crash in between would
+    // otherwise leave the person looking at records the file does not have.
+    setChanged(true);
+    autoSave();
+
+    reloadAll();
+
+    emit sig_syncStatusChanged();
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onConflicts(const std::vector<std::string>& /* guids */)
+{
+    // Nothing is interrupted. The status bar says how many are waiting and the person goes to them
+    // when it suits; a window in the middle of something else gets closed without being read.
+    emit sig_syncStatusChanged();
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onSyncStopped(SyncEngine::PullOutcome::Status reason)
+{
+    LOG(LS_ERROR) << "Address book synchronization stopped, reason: " << static_cast<int>(reason);
+
+    sync_stopped_ = true;
+    emit sig_syncStatusChanged();
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onInSync(int64_t /* revision */)
+{
+    setChanged(true);
+    autoSave();
+
+    emit sig_syncStatusChanged();
 }
 
 //--------------------------------------------------------------------------------------------------
