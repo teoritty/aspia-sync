@@ -120,6 +120,8 @@ endif()
 # be linked into a test, and keeping this code apart from the console keeps merges with upstream
 # mechanical. It depends on the protocol and on base, never on Qt or on the console.
 list(APPEND SOURCE_CONSOLE_BOOK
+    book/bootstrap.cc
+    book/bootstrap.h
     book/entry_guid.cc
     book/entry_guid.h
     book/flat_book.cc
@@ -134,6 +136,7 @@ list(APPEND SOURCE_CONSOLE_BOOK
     book/sync_key.h)
 
 list(APPEND SOURCE_CONSOLE_BOOK_TESTS
+    book/bootstrap_unittest.cc
     book/entry_guid_unittest.cc
     book/flat_book_unittest.cc
     book/local_changes_unittest.cc
