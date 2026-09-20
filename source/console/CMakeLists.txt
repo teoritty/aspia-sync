@@ -121,10 +121,13 @@ endif()
 # mechanical. It depends on the protocol and on base, never on Qt or on the console.
 list(APPEND SOURCE_CONSOLE_BOOK
     book/entry_guid.cc
-    book/entry_guid.h)
+    book/entry_guid.h
+    book/flat_book.cc
+    book/flat_book.h)
 
 list(APPEND SOURCE_CONSOLE_BOOK_TESTS
-    book/entry_guid_unittest.cc)
+    book/entry_guid_unittest.cc
+    book/flat_book_unittest.cc)
 
 add_library(aspia_console_book STATIC ${SOURCE_CONSOLE_BOOK})
 target_link_libraries(aspia_console_book
