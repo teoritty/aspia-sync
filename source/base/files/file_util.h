@@ -29,6 +29,17 @@ bool writeFile(const std::filesystem::path& filename, const void* data, size_t s
 bool writeFile(const std::filesystem::path& filename, const ByteArray& buffer);
 bool writeFile(const std::filesystem::path& filename, std::string_view buffer);
 
+// Writes the file the way writeFile does, but never leaves it half-written. The content goes to a
+// temporary file next to the target and that file is renamed over it, so at every moment the name
+// points either at the whole previous content or at the whole new one. A failure anywhere leaves
+// the previous content untouched and takes the temporary with it.
+//
+// This is what the callers that keep the only copy of something must use. writeFile truncates the
+// target before it has anything to put in its place, so an interrupted write destroys the file.
+bool writeFileAtomically(const std::filesystem::path& filename, const void* data, size_t size);
+bool writeFileAtomically(const std::filesystem::path& filename, const ByteArray& buffer);
+bool writeFileAtomically(const std::filesystem::path& filename, std::string_view buffer);
+
 bool readFile(const std::filesystem::path& filename, ByteArray* buffer);
 bool readFile(const std::filesystem::path& filename, std::string* buffer);
 

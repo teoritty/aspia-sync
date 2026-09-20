@@ -362,6 +362,9 @@ if (WIN32)
         files/file_path_watcher_win.cc)
 endif()
 
+list(APPEND SOURCE_BASE_FILES_TESTS
+    files/file_util_unittest.cc)
+
 list(APPEND SOURCE_BASE_IPC
     ipc/ipc_channel.cc
     ipc/ipc_channel.h
@@ -665,6 +668,7 @@ add_executable(aspia_base_tests
     ${SOURCE_BASE_CRYPTO_TESTS}
     ${SOURCE_BASE_DESKTOP_TESTS}
     ${SOURCE_BASE_DESKTOP_WIN_TESTS}
+    ${SOURCE_BASE_FILES_TESTS}
     ${SOURCE_BASE_MEMORY_TESTS}
     ${SOURCE_BASE_NET_TESTS}
     ${SOURCE_BASE_SETTINGS_TESTS}

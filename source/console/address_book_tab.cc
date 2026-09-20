@@ -23,6 +23,7 @@
 #include "base/crypto/data_cryptor_fake.h"
 #include "base/crypto/password_hash.h"
 #include "base/crypto/secure_memory.h"
+#include "base/files/file_util.h"
 #include "base/strings/unicode.h"
 #include "client/online_checker/online_checker.h"
 #include "console/address_book_dialog.h"
@@ -1232,24 +1233,20 @@ bool AddressBookTab::saveToFile(const QString& file_path)
         settings.setLastDirectory(QFileInfo(path).absolutePath());
     }
 
-    QFile file(path);
-    if (!file.open(QIODevice::WriteOnly))
-    {
-        LOG(LS_ERROR) << "Unable to open file for write";
-        showSaveError(this, tr("Unable to create or open address book file."));
-        return false;
-    }
-
     base::ByteArray buffer = base::serialize(file_);
 
-    int64_t bytes_written = file.write(
-        reinterpret_cast<const char*>(buffer.data()), static_cast<qint64>(buffer.size()));
+    // The file being written is the only copy of the address book, so it is never opened for
+    // writing directly: the content goes to a temporary next to it and is renamed over it. An
+    // interrupted save then leaves the previous book whole instead of a truncated file nothing
+    // can decrypt.
+    const bool written = base::writeFileAtomically(
+        std::filesystem::path(path.toStdWString()), buffer);
 
     base::memZero(buffer.data(), buffer.size());
 
-    if (bytes_written != static_cast<int64_t>(buffer.size()))
+    if (!written)
     {
-        LOG(LS_ERROR) << "Unable to write file: " << file.errorString().toStdString();
+        LOG(LS_ERROR) << "Unable to write address book file";
         showSaveError(this, tr("Unable to write address book file."));
         return false;
     }
