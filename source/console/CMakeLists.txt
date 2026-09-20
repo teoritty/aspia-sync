@@ -124,6 +124,8 @@ list(APPEND SOURCE_CONSOLE_BOOK
     book/bootstrap.h
     book/book_controller.cc
     book/book_controller.h
+    book/book_sync.cc
+    book/book_sync.h
     book/entry_guid.cc
     book/entry_guid.h
     book/flat_book.cc
@@ -138,6 +140,7 @@ list(APPEND SOURCE_CONSOLE_BOOK
     book/sync_key.h)
 
 list(APPEND SOURCE_CONSOLE_BOOK_TESTS
+    book/book_sync_unittest.cc
     book/bootstrap_unittest.cc
     book/entry_guid_unittest.cc
     book/flat_book_unittest.cc
