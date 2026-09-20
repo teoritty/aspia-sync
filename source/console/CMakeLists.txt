@@ -88,6 +88,8 @@ list(APPEND SOURCE_CONSOLE
     settings.h
     statusbar.cc
     statusbar.h
+    sync_wizard.cc
+    sync_wizard.h
     update_settings_dialog.cc
     update_settings_dialog.h
     update_settings_dialog.ui)
