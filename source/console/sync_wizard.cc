@@ -235,8 +235,8 @@ bool SyncWizard::checkPassphrase()
     const int index = book_combo_->currentIndex();
 
     book_guid_ = book_combo_->itemData(index, Qt::UserRole).toString();
-    salt_ = book_combo_->itemData(index, Qt::UserRole + 1).toString();
-    verifier_ = book_combo_->itemData(index, Qt::UserRole + 2).toString();
+    salt_ = book_combo_->itemData(index, Qt::UserRole + 1).toByteArray();
+    verifier_ = book_combo_->itemData(index, Qt::UserRole + 2).toByteArray();
     passphrase_ = passphrase_edit_->text();
 
     if (passphrase_.isEmpty())
@@ -380,8 +380,8 @@ void SyncWizard::onCreateBook()
     }
 
     pending_book_name_ = name;
-    pending_salt_ = QString::fromStdString(salt);
-    pending_verifier_ = QString::fromStdString(verifier);
+    pending_salt_ = QByteArray::fromStdString(salt);
+    pending_verifier_ = QByteArray::fromStdString(verifier);
 
     waiting_ = true;
     updateButtons();
@@ -464,8 +464,9 @@ void SyncWizard::onBookList(const proto::BookList& message)
 
         book_combo_->addItem(QString::fromStdString(book.name()));
         book_combo_->setItemData(i, QString::fromStdString(book.guid()), Qt::UserRole);
-        book_combo_->setItemData(i, QString::fromStdString(book.sync_salt()), Qt::UserRole + 1);
-        book_combo_->setItemData(i, QString::fromStdString(book.key_verifier()), Qt::UserRole + 2);
+        book_combo_->setItemData(i, QByteArray::fromStdString(book.sync_salt()), Qt::UserRole + 1);
+        book_combo_->setItemData(i, QByteArray::fromStdString(book.key_verifier()),
+                                 Qt::UserRole + 2);
     }
 
     const bool empty = (book_combo_->count() == 0);

@@ -1136,8 +1136,8 @@ QString AddressBookTab::syncBookGuid() const
 }
 
 //--------------------------------------------------------------------------------------------------
-bool AddressBookTab::enableSync(const QString& book_guid, const QString& salt,
-                                const QString& verifier, const QString& passphrase)
+bool AddressBookTab::enableSync(const QString& book_guid, const QByteArray& salt,
+                                const QByteArray& verifier, const QString& passphrase)
 {
     const std::string key = deriveSyncKey(passphrase.toStdString(), salt.toStdString());
     if (key.empty())

@@ -77,7 +77,9 @@ public:
 
     // Turns synchronization on for this book and starts it. |passphrase| is what the shared key is
     // derived from; it is not written to the file.
-    bool enableSync(const QString& book_guid, const QString& salt, const QString& verifier,
+    // |salt| and |verifier| are binary and are carried as such: read through QString they would
+    // be taken for UTF-8 and come back as different bytes.
+    bool enableSync(const QString& book_guid, const QByteArray& salt, const QByteArray& verifier,
                     const QString& passphrase);
 
     // Turns it off. The book stays exactly as it is and becomes an ordinary local file again.
@@ -101,6 +103,7 @@ public:
     // The name a record is shown under, so a list of guids can be made readable. Falls back to the
     // guid itself for a record that is no longer in the book.
     QString computerNameByGuid(const QString& guid) const;
+
 
     void retranslateUi();
 

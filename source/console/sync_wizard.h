@@ -65,8 +65,13 @@ public:
 
     // Filled once the dialog is accepted.
     QString bookGuid() const { return book_guid_; }
-    QString salt() const { return salt_; }
-    QString verifier() const { return verifier_; }
+
+    // Binary, and carried as such. A salt is 32 random bytes and a verifier is ciphertext; put
+    // through QString they would be read as UTF-8, and whatever is not valid UTF-8 comes back as a
+    // replacement character - different bytes, a different length, and a key nobody else has.
+    QByteArray salt() const { return salt_; }
+    QByteArray verifier() const { return verifier_; }
+
     QString passphrase() const { return passphrase_; }
 
 protected:
@@ -104,8 +109,8 @@ private:
     // session, and the one the book is read through is an ordinary client.
     std::unique_ptr<BookController> admin_controller_;
     QString pending_book_name_;
-    QString pending_salt_;
-    QString pending_verifier_;
+    QByteArray pending_salt_;
+    QByteArray pending_verifier_;
 
     QStackedWidget* pages_ = nullptr;
     QComboBox* book_combo_ = nullptr;
@@ -125,8 +130,8 @@ private:
     int64_t received_count_ = 0;
 
     QString book_guid_;
-    QString salt_;
-    QString verifier_;
+    QByteArray salt_;
+    QByteArray verifier_;
     QString passphrase_;
     std::string sync_key_;
 
