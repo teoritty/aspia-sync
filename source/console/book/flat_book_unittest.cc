@@ -71,6 +71,15 @@ std::vector<std::string> paths(const ComputerGroup& root)
     return result;
 }
 
+// The root a rebuild goes into. It is the person's own - their name for the book, their guid -
+// and the records only ever fill it, so a test that compares two trees has to start from one.
+ComputerGroup emptyBook()
+{
+    ComputerGroup root;
+    root.set_name("book");
+    return root;
+}
+
 const FlatEntry* find(const std::vector<FlatEntry>& entries, const std::string& guid)
 {
     for (const FlatEntry& entry : entries)
@@ -110,8 +119,9 @@ TEST(flat_book_test, flatten_yields_every_record)
 
     const std::vector<FlatEntry> entries = flattenBook(root);
 
-    // Root, 3 groups, 4 computers.
-    EXPECT_EQ(entries.size(), 8u);
+    // 3 groups and 4 computers. The root is not among them: it is the book rather than something
+    // in it.
+    EXPECT_EQ(entries.size(), 7u);
 
     size_t groups = 0;
     size_t computers = 0;
@@ -123,16 +133,21 @@ TEST(flat_book_test, flatten_yields_every_record)
             ++computers;
     }
 
-    EXPECT_EQ(groups, 4u);
+    EXPECT_EQ(groups, 3u);
     EXPECT_EQ(computers, 4u);
 }
 
 //--------------------------------------------------------------------------------------------------
-TEST(flat_book_test, only_the_root_has_no_parent)
+// No parent means the top level of the book, and the root itself is not sent at all - each person
+// has a root of their own, and sending it would have every console file somebody else's root away
+// inside its own.
+TEST(flat_book_test, the_root_is_not_a_record_and_its_children_have_no_parent)
 {
     const ComputerGroup root = makeBook();
 
     const std::vector<FlatEntry> entries = flattenBook(root);
+
+    EXPECT_FALSE(find(entries, root.guid()));
 
     size_t without_parent = 0;
     for (const FlatEntry& entry : entries)
@@ -141,9 +156,8 @@ TEST(flat_book_test, only_the_root_has_no_parent)
             ++without_parent;
     }
 
-    EXPECT_EQ(without_parent, 1u);
-    ASSERT_TRUE(find(entries, root.guid()));
-    EXPECT_TRUE(find(entries, root.guid())->parent_guid.empty());
+    // "at the root", "office" and "empty".
+    EXPECT_EQ(without_parent, 3u);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -152,13 +166,17 @@ TEST(flat_book_test, round_trip_keeps_the_tree)
 {
     const ComputerGroup root = makeBook();
 
-    ComputerGroup rebuilt;
+    ComputerGroup rebuilt = emptyBook();
+    rebuilt.set_guid("a root of its own");
+
     size_t skipped = 1;
     ASSERT_TRUE(rebuildBook(flattenBook(root), &rebuilt, &skipped));
 
     EXPECT_EQ(skipped, 0u);
     EXPECT_EQ(paths(rebuilt), paths(root));
-    EXPECT_EQ(rebuilt.guid(), root.guid());
+
+    // And the root that was passed in is still the one that is there.
+    EXPECT_EQ(rebuilt.guid(), "a root of its own");
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -175,7 +193,7 @@ TEST(flat_book_test, round_trip_keeps_the_fields_of_a_record)
 
     ensureEntryGuids(&root);
 
-    ComputerGroup rebuilt;
+    ComputerGroup rebuilt = emptyBook();
     ASSERT_TRUE(rebuildBook(flattenBook(root), &rebuilt, nullptr));
 
     ASSERT_EQ(rebuilt.computer_size(), 1);
@@ -204,7 +222,7 @@ TEST(flat_book_test, expanded_is_not_carried)
 
     ensureEntryGuids(&root);
 
-    ComputerGroup rebuilt;
+    ComputerGroup rebuilt = emptyBook();
     ASSERT_TRUE(rebuildBook(flattenBook(root), &rebuilt, nullptr));
 
     EXPECT_FALSE(rebuilt.expanded());
@@ -256,7 +274,7 @@ TEST(flat_book_test, moving_a_group_changes_one_record)
     for (FlatEntry& entry : after)
     {
         if (entry.guid == basement_guid)
-            entry.parent_guid = root.guid();
+            entry.parent_guid.clear(); // To the top level of the book.
     }
 
     size_t differences = 0;
@@ -270,7 +288,7 @@ TEST(flat_book_test, moving_a_group_changes_one_record)
     }
     EXPECT_EQ(differences, 1u);
 
-    ComputerGroup rebuilt;
+    ComputerGroup rebuilt = emptyBook();
     ASSERT_TRUE(rebuildBook(after, &rebuilt, nullptr));
 
     const std::vector<std::string> result = paths(rebuilt);
@@ -288,7 +306,7 @@ TEST(flat_book_test, order_of_entries_does_not_matter)
     std::vector<FlatEntry> entries = flattenBook(root);
     std::reverse(entries.begin(), entries.end());
 
-    ComputerGroup rebuilt;
+    ComputerGroup rebuilt = emptyBook();
     size_t skipped = 1;
     ASSERT_TRUE(rebuildBook(entries, &rebuilt, &skipped));
 
@@ -322,7 +340,7 @@ TEST(flat_book_test, computer_without_a_parent_goes_to_the_root)
                                  [&](const FlatEntry& entry) { return entry.guid == basement_guid; }),
                   entries.end());
 
-    ComputerGroup rebuilt;
+    ComputerGroup rebuilt = emptyBook();
     size_t skipped = 0;
     ASSERT_TRUE(rebuildBook(entries, &rebuilt, &skipped));
 
@@ -360,7 +378,7 @@ TEST(flat_book_test, cycle_does_not_lose_anything)
             entry.parent_guid = a_guid;
     }
 
-    ComputerGroup rebuilt;
+    ComputerGroup rebuilt = emptyBook();
     size_t skipped = 0;
     ASSERT_TRUE(rebuildBook(entries, &rebuilt, &skipped));
 
@@ -380,7 +398,7 @@ TEST(flat_book_test, repeated_guid_is_taken_once)
     std::vector<FlatEntry> entries = flattenBook(root);
     entries.push_back(entries.back());
 
-    ComputerGroup rebuilt;
+    ComputerGroup rebuilt = emptyBook();
     size_t skipped = 0;
     ASSERT_TRUE(rebuildBook(entries, &rebuilt, &skipped));
 
@@ -404,7 +422,7 @@ TEST(flat_book_test, damaged_payload_is_skipped)
         }
     }
 
-    ComputerGroup rebuilt;
+    ComputerGroup rebuilt = emptyBook();
     size_t skipped = 0;
     ASSERT_TRUE(rebuildBook(entries, &rebuilt, &skipped));
 
@@ -413,27 +431,68 @@ TEST(flat_book_test, damaged_payload_is_skipped)
 }
 
 //--------------------------------------------------------------------------------------------------
-TEST(flat_book_test, refuses_a_list_without_a_root)
+// The name a person gave their book, and everything else about their root, is theirs. A colleague
+// renaming their own copy must not rename it here.
+TEST(flat_book_test, the_root_that_was_passed_in_is_kept)
 {
-    const ComputerGroup root = makeBook();
+    ComputerGroup theirs;
+    theirs.set_name("what they call it");
+    addComputer(&theirs, "server", "12345");
+    ensureEntryGuids(&theirs);
 
-    std::vector<FlatEntry> entries = flattenBook(root);
-    entries.erase(std::remove_if(entries.begin(), entries.end(),
-                                 [](const FlatEntry& entry) { return entry.parent_guid.empty(); }),
-                  entries.end());
+    ComputerGroup mine = emptyBook();
+    mine.set_name("what I call it");
+    ensureEntryGuids(&mine);
 
-    ComputerGroup rebuilt;
-    rebuilt.set_name("untouched");
+    const std::string my_guid = mine.guid();
 
-    EXPECT_FALSE(rebuildBook(entries, &rebuilt, nullptr));
-    EXPECT_EQ(rebuilt.name(), "untouched");
+    ASSERT_TRUE(rebuildBook(flattenBook(theirs), &mine, nullptr));
+
+    EXPECT_EQ(mine.name(), "what I call it");
+    EXPECT_EQ(mine.guid(), my_guid);
+    ASSERT_EQ(mine.computer_size(), 1);
+    EXPECT_EQ(mine.computer(0).name(), "server");
 }
 
 //--------------------------------------------------------------------------------------------------
-TEST(flat_book_test, refuses_an_empty_list)
+// Two people join the same book. Neither of their roots may end up inside the other's, which is
+// what happens the moment the root is treated as an ordinary record.
+TEST(flat_book_test, joining_does_not_nest_one_book_inside_another)
 {
-    ComputerGroup rebuilt;
-    EXPECT_FALSE(rebuildBook(std::vector<FlatEntry>(), &rebuilt, nullptr));
+    ComputerGroup theirs;
+    theirs.set_name("their book");
+    addComputer(&theirs, "server", "12345");
+    ensureEntryGuids(&theirs);
+
+    ComputerGroup mine;
+    mine.set_name("my book");
+    addComputer(&mine, "laptop", "999");
+    ensureEntryGuids(&mine);
+
+    std::vector<FlatEntry> both = flattenBook(theirs);
+    for (const FlatEntry& entry : flattenBook(mine))
+        both.push_back(entry);
+
+    ComputerGroup rebuilt = emptyBook();
+    ASSERT_TRUE(rebuildBook(both, &rebuilt, nullptr));
+
+    EXPECT_EQ(rebuilt.computer_group_size(), 0);
+    EXPECT_EQ(rebuilt.computer_size(), 2);
+    EXPECT_EQ(paths(rebuilt), (std::vector<std::string>{"book/laptop", "book/server"}));
+}
+
+//--------------------------------------------------------------------------------------------------
+// A book everybody emptied is an empty book, not a failure.
+TEST(flat_book_test, an_empty_list_gives_an_empty_book)
+{
+    ComputerGroup rebuilt = emptyBook();
+    addComputer(&rebuilt, "left over from before", "1");
+
+    EXPECT_TRUE(rebuildBook(std::vector<FlatEntry>(), &rebuilt, nullptr));
+
+    EXPECT_EQ(rebuilt.name(), "book");
+    EXPECT_EQ(rebuilt.computer_size(), 0);
+    EXPECT_EQ(rebuilt.computer_group_size(), 0);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -453,9 +512,7 @@ TEST(flat_book_test, records_without_a_guid_are_not_flattened)
 
     addComputer(&root, "no identity yet");
 
-    const std::vector<FlatEntry> entries = flattenBook(root);
-    EXPECT_EQ(entries.size(), 1u);
-    EXPECT_EQ(entries.front().guid, root.guid());
+    EXPECT_TRUE(flattenBook(root).empty());
 }
 
 } // namespace console

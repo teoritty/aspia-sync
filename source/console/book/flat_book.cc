@@ -47,6 +47,35 @@ std::string groupPayload(const ComputerGroup& group)
 
 //--------------------------------------------------------------------------------------------------
 void flattenGroup(const ComputerGroup& group, const std::string& parent_guid,
+                  std::vector<FlatEntry>* out);
+
+//--------------------------------------------------------------------------------------------------
+// The records inside a group, told to name |parent_guid| as the group holding them. For everything
+// but the root that is the group's own guid; for the root it is empty, which is what puts its
+// children at the top level of the shared book.
+void flattenChildren(const ComputerGroup& group, const std::string& parent_guid,
+                     std::vector<FlatEntry>* out)
+{
+    for (int i = 0; i < group.computer_size(); ++i)
+    {
+        const Computer& computer = group.computer(i);
+        if (!isValidEntryGuid(computer.guid()))
+            continue;
+
+        FlatEntry child;
+        child.guid = computer.guid();
+        child.parent_guid = parent_guid;
+        child.kind = FlatEntry::Kind::COMPUTER;
+        child.payload = computer.SerializeAsString();
+        out->emplace_back(std::move(child));
+    }
+
+    for (int i = 0; i < group.computer_group_size(); ++i)
+        flattenGroup(group.computer_group(i), parent_guid, out);
+}
+
+//--------------------------------------------------------------------------------------------------
+void flattenGroup(const ComputerGroup& group, const std::string& parent_guid,
                   std::vector<FlatEntry>* out)
 {
     if (!isValidEntryGuid(group.guid()))
@@ -59,22 +88,7 @@ void flattenGroup(const ComputerGroup& group, const std::string& parent_guid,
     entry.payload = groupPayload(group);
     out->emplace_back(std::move(entry));
 
-    for (int i = 0; i < group.computer_size(); ++i)
-    {
-        const Computer& computer = group.computer(i);
-        if (!isValidEntryGuid(computer.guid()))
-            continue;
-
-        FlatEntry child;
-        child.guid = computer.guid();
-        child.parent_guid = group.guid();
-        child.kind = FlatEntry::Kind::COMPUTER;
-        child.payload = computer.SerializeAsString();
-        out->emplace_back(std::move(child));
-    }
-
-    for (int i = 0; i < group.computer_group_size(); ++i)
-        flattenGroup(group.computer_group(i), group.guid(), out);
+    flattenChildren(group, group.guid(), out);
 }
 
 } // namespace
@@ -83,7 +97,13 @@ void flattenGroup(const ComputerGroup& group, const std::string& parent_guid,
 std::vector<FlatEntry> flattenBook(const ComputerGroup& root)
 {
     std::vector<FlatEntry> entries;
-    flattenGroup(root, std::string(), &entries);
+
+    // The root itself is not one of the records. It is the book, and each person has their own:
+    // their own name for it, their own guid, made when they first opened the file. Sending it
+    // would have every console receive somebody else's root as an ordinary group, fail to
+    // recognise it as a root, and file it away inside its own - a book that grows a level of
+    // nesting for every colleague who joins.
+    flattenChildren(root, std::string(), &entries);
     return entries;
 }
 
@@ -101,7 +121,6 @@ bool rebuildBook(const std::vector<FlatEntry>& entries, ComputerGroup* root, siz
     // A repeated guid is taken once. Two records under one name would otherwise both be placed and
     // the book would grow a copy of something with every exchange.
     std::map<std::string, const FlatEntry*> by_guid;
-    const FlatEntry* root_entry = nullptr;
 
     for (const FlatEntry& entry : entries)
     {
@@ -112,45 +131,28 @@ bool rebuildBook(const std::vector<FlatEntry>& entries, ComputerGroup* root, siz
         }
 
         if (!by_guid.emplace(entry.guid, &entry).second)
-        {
             ++skipped_count;
-            continue;
-        }
-
-        if (entry.parent_guid.empty() && entry.kind == FlatEntry::Kind::GROUP && !root_entry)
-            root_entry = &entry;
     }
 
-    if (!root_entry)
-    {
-        if (skipped)
-            *skipped = skipped_count;
-        return false;
-    }
-
-    ComputerGroup rebuilt;
-    if (!rebuilt.ParseFromString(root_entry->payload))
-    {
-        if (skipped)
-            *skipped = skipped_count;
-        return false;
-    }
-    rebuilt.set_guid(root_entry->guid);
+    // The root that was passed in is kept: its name, its guid and the rest of what it carries are
+    // this person's own and are not part of what is shared. Only what hangs off it is replaced.
+    ComputerGroup rebuilt(*root);
+    rebuilt.clear_computer();
+    rebuilt.clear_computer_group();
 
     // Where each group ended up, so the records naming it can be put inside. Protobuf keeps the
     // address of an element of a repeated field stable when the field grows, so these stay valid.
+    //
+    // The empty guid is in here too: it is what a record at the top level of the book names as its
+    // parent, and it resolves to the local root.
     std::map<std::string, ComputerGroup*> groups;
-    groups.emplace(root_entry->guid, &rebuilt);
+    groups.emplace(std::string(), &rebuilt);
 
     std::vector<const FlatEntry*> pending;
     pending.reserve(by_guid.size());
 
     for (const auto& [guid, entry] : by_guid)
-    {
-        if (entry == root_entry)
-            continue;
         pending.push_back(entry);
-    }
 
     // Placing groups first, by repeated passes: every pass puts in the ones whose parent is
     // already there. What is left after a pass that placed nothing hangs off a missing parent or

@@ -49,7 +49,8 @@ struct FlatEntry
 
     std::string guid;
 
-    // The group holding this record. Empty for the root, which is the only record without one.
+    // The group holding this record. Empty means the top level of the book: the root group is not
+    // a record, because each person has a root of their own.
     std::string parent_guid;
 
     Kind kind = Kind::GROUP;
@@ -63,9 +64,14 @@ struct FlatEntry
 // Turns the tree into a list. Every record must already carry a guid (see ensureEntryGuids); one
 // that does not is skipped along with everything under it, because a record nothing can name
 // cannot be placed back afterwards.
+//
+// The root group itself is not in the list. It is the book rather than something in it, and each
+// person's copy has a root of its own, made when they first opened their file.
 std::vector<FlatEntry> flattenBook(const proto::address_book::ComputerGroup& root);
 
-// Builds the tree back. The result of rebuildBook(flattenBook(x)) is x, minus the expanded flags.
+// Builds the tree back under |root|, which keeps everything of its own - its guid, its name, its
+// expanded flag - and has only its children replaced. The result of rebuildBook(flattenBook(x), &y)
+// is x's contents under y's own root, minus the expanded flags.
 //
 // The input comes from the network and is not to be trusted:
 //
@@ -78,8 +84,8 @@ std::vector<FlatEntry> flattenBook(const proto::address_book::ComputerGroup& roo
 //   - a payload that does not parse is skipped, and so is a record of an unknown kind. One
 //     damaged record must not cost the whole book.
 //
-// Returns false when the list holds no usable root, in which case |root| is left untouched.
-// |skipped| receives the number of records that were not placed for any of the reasons above, so
+// Returns false only when |root| is null; an empty list gives an empty book, which is what a
+// book everybody has emptied should look like. |skipped| receives the number of records that were not placed for any of the reasons above, so
 // the caller can tell the person that the book did not arrive whole.
 bool rebuildBook(const std::vector<FlatEntry>& entries,
                  proto::address_book::ComputerGroup* root,
