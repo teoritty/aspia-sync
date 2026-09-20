@@ -26,6 +26,7 @@
 #include "qt_base/application.h"
 
 #include <QComboBox>
+#include <QInputDialog>
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QHeaderView>
@@ -101,6 +102,14 @@ void SyncWizard::buildUi()
     status_label_ = new QLabel(book_page);
     status_label_->setWordWrap(true);
     book_layout->addWidget(status_label_);
+
+    // Shown only when the router has no shared book yet: somebody has to make the first one, and
+    // that somebody is whoever is setting this up.
+    create_button_ = new QPushButton(tr("Create a shared book..."), book_page);
+    create_button_->setVisible(false);
+    connect(create_button_, &QPushButton::clicked, this, &SyncWizard::onCreateBook);
+    book_layout->addWidget(create_button_);
+
     book_layout->addStretch();
 
     pages_->addWidget(book_page);
@@ -334,8 +343,96 @@ void SyncWizard::buildPreview()
 }
 
 //--------------------------------------------------------------------------------------------------
+void SyncWizard::onCreateBook()
+{
+    bool accepted = false;
+    const QString name = QInputDialog::getText(
+        this, tr("Create a Shared Book"), tr("Name of the shared book:"), QLineEdit::Normal,
+        tr("Department"), &accepted).trimmed();
+
+    if (!accepted || name.isEmpty())
+        return;
+
+    const QString passphrase = QInputDialog::getText(
+        this, tr("Create a Shared Book"),
+        tr("Passphrase for the book. Everybody who joins it enters this same passphrase, and the "
+           "router never learns it. It cannot be recovered if it is lost."),
+        QLineEdit::Password, QString(), &accepted);
+
+    if (!accepted || passphrase.isEmpty())
+        return;
+
+    // The salt and the verifier are made here rather than on the router, which is the whole point:
+    // the router stores what it cannot read.
+    const std::string salt = createSyncSalt();
+    const std::string key = deriveSyncKey(passphrase.toStdString(), salt);
+    if (key.empty())
+    {
+        setStatus(tr("Unable to prepare the key for the book."), true);
+        return;
+    }
+
+    const std::string verifier = createKeyVerifier(key);
+    if (verifier.empty())
+    {
+        setStatus(tr("Unable to prepare the key for the book."), true);
+        return;
+    }
+
+    pending_book_name_ = name;
+    pending_salt_ = QString::fromStdString(salt);
+    pending_verifier_ = QString::fromStdString(verifier);
+
+    waiting_ = true;
+    updateButtons();
+    setStatus(tr("Creating the shared book..."));
+
+    // Creating needs an administrator session, so it goes over a connection of its own.
+    admin_controller_ = std::make_unique<BookController>(
+        router_config_, qt_base::Application::uiTaskRunner(), BookController::Role::ADMIN);
+    admin_controller_->start(this);
+}
+
+//--------------------------------------------------------------------------------------------------
+void SyncWizard::onBookCreated(const std::string& guid, const std::string& error)
+{
+    waiting_ = false;
+
+    if (!error.empty())
+    {
+        if (error == "already_exists")
+            setStatus(tr("A shared book with this name already exists."), true);
+        else
+            setStatus(tr("The router refused to create the book."), true);
+
+        updateButtons();
+        return;
+    }
+
+    LOG(LS_INFO) << "Shared book created: " << guid;
+
+    setStatus(tr("The shared book was created. Enter the passphrase to join it."));
+
+    // The administrator connection has done its one job.
+    admin_controller_.reset();
+
+    // And the list is asked for again, so the new book appears in it.
+    controller_->requestBookList(1);
+}
+
+//--------------------------------------------------------------------------------------------------
 void SyncWizard::onBookConnected()
 {
+    // Both connections report here. The administrator one is only ever opened to create a book, so
+    // that is what it does as soon as it is up.
+    if (admin_controller_ && !pending_book_name_.isEmpty())
+    {
+        admin_controller_->requestCreateBook(pending_book_name_.toStdString(),
+                                             pending_salt_.toStdString(),
+                                             pending_verifier_.toStdString());
+        return;
+    }
+
     setStatus(tr("Reading the list of shared books..."));
     controller_->requestBookList(1);
 }
@@ -371,16 +468,19 @@ void SyncWizard::onBookList(const proto::BookList& message)
         book_combo_->setItemData(i, QString::fromStdString(book.key_verifier()), Qt::UserRole + 2);
     }
 
-    if (book_combo_->count() == 0)
+    const bool empty = (book_combo_->count() == 0);
+
+    if (empty)
     {
-        setStatus(tr("The router has no shared address books yet. "
-                     "One has to be created by an administrator."), true);
+        setStatus(tr("The router has no shared address books yet. The first one has to be "
+                     "created; that needs an administrator account on the router."), false);
     }
     else
     {
         setStatus(QString());
     }
 
+    create_button_->setVisible(empty);
     updateButtons();
 }
 

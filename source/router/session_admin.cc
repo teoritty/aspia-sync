@@ -18,13 +18,26 @@
 
 #include "router/session_admin.h"
 
+#include "base/guid.h"
 #include "base/logging.h"
 #include "base/peer/user.h"
+#include "router/book/book_store.h"
 #include "router/database.h"
+#include "router/database_sqlite.h"
 #include "router/server.h"
 #include "router/session_relay.h"
 
 namespace router {
+
+namespace {
+
+// Bounds on what an administrator may send. None of these are reached by the console; they are
+// here so that something which is not the console cannot make the router store nonsense.
+constexpr size_t kMaxBookNameLength = 64;
+constexpr size_t kSyncSaltSize = 32;
+constexpr size_t kMaxVerifierLength = 1024;
+
+} // namespace
 
 //--------------------------------------------------------------------------------------------------
 SessionAdmin::SessionAdmin()
@@ -76,6 +89,10 @@ void SessionAdmin::onSessionMessageReceived(uint8_t /* channel_id */, const base
     {
         doPeerConnectionRequest(message->peer_connection_request());
     }
+    else if (message->has_book_create_request())
+    {
+        doBookCreateRequest(message->book_create_request());
+    }
     else
     {
         LOG(LS_ERROR) << "Unhandled message from manager";
@@ -86,6 +103,79 @@ void SessionAdmin::onSessionMessageReceived(uint8_t /* channel_id */, const base
 void SessionAdmin::onSessionMessageWritten(uint8_t /* channel_id */, size_t /* pending */)
 {
     // Nothing
+}
+
+//--------------------------------------------------------------------------------------------------
+void SessionAdmin::doBookCreateRequest(const proto::BookCreateRequest& request)
+{
+    proto::RouterToAdmin message;
+    proto::BookCreateResult* result = message.mutable_book_create_result();
+
+    // The salt and the verifier are made by the console. The router checks that they are there and
+    // of a sane size, and nothing else: it cannot read what they protect and has no business
+    // trying.
+    if (request.name().empty() || request.name().size() > kMaxBookNameLength ||
+        request.sync_salt().size() != kSyncSaltSize ||
+        request.key_verifier().empty() ||
+        request.key_verifier().size() > kMaxVerifierLength)
+    {
+        LOG(LS_ERROR) << "Invalid book creation request";
+        result->set_error_code(proto::BookCreateResult::INVALID_DATA);
+        sendMessage(proto::ROUTER_CHANNEL_ID_SESSION, message);
+        return;
+    }
+
+    std::unique_ptr<BookStore> store = BookStore::open(DatabaseSqlite::filePath());
+    if (!store)
+    {
+        LOG(LS_ERROR) << "Unable to open the address book store";
+        result->set_error_code(proto::BookCreateResult::INTERNAL_ERROR);
+        sendMessage(proto::ROUTER_CHANNEL_ID_SESSION, message);
+        return;
+    }
+
+    std::vector<Book> existing;
+    if (store->bookList(&existing))
+    {
+        for (const Book& book : existing)
+        {
+            if (book.name != request.name())
+                continue;
+
+            // Two books under one name would be told apart by nobody, and the consoles pick one
+            // from a list of names.
+            LOG(LS_ERROR) << "A book with this name already exists";
+            result->set_error_code(proto::BookCreateResult::ALREADY_EXISTS);
+            sendMessage(proto::ROUTER_CHANNEL_ID_SESSION, message);
+            return;
+        }
+    }
+
+    Book book;
+    book.guid = base::Guid::create().toStdString();
+    book.name = request.name();
+    book.sync_salt = request.sync_salt();
+    book.key_verifier = request.key_verifier();
+
+    // The epoch says which run of this database the revisions belong to. It is replaced when the
+    // database is restored from a backup, which is how a console finds out that what it remembers
+    // about the revision no longer refers to anything.
+    book.epoch = base::Guid::create().toStdString();
+
+    if (!store->createBook(book))
+    {
+        LOG(LS_ERROR) << "Unable to create the book";
+        result->set_error_code(proto::BookCreateResult::INTERNAL_ERROR);
+        sendMessage(proto::ROUTER_CHANNEL_ID_SESSION, message);
+        return;
+    }
+
+    LOG(LS_INFO) << "Shared address book created: " << book.name;
+
+    result->set_error_code(proto::BookCreateResult::SUCCESS);
+    result->set_guid(book.guid);
+
+    sendMessage(proto::ROUTER_CHANNEL_ID_SESSION, message);
 }
 
 //--------------------------------------------------------------------------------------------------

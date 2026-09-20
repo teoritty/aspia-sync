@@ -39,6 +39,7 @@ protected:
     void onSessionMessageWritten(uint8_t channel_id, size_t pending) final;
 
 private:
+    void doBookCreateRequest(const proto::BookCreateRequest& request);
     void doUserListRequest();
     void doUserRequest(const proto::UserRequest& request);
     void doSessionListRequest(const proto::SessionListRequest& request);

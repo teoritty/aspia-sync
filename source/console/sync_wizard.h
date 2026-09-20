@@ -78,10 +78,12 @@ protected:
     void onBookPull(const proto::BookPull& message) final;
     void onBookPushResult(const proto::BookPushResult& message) final;
     void onBookChanged(const proto::BookChanged& message) final;
+    void onBookCreated(const std::string& guid, const std::string& error) final;
 
 private slots:
     void onBack();
     void onNext();
+    void onCreateBook();
 
 private:
     void buildUi();
@@ -98,12 +100,20 @@ private:
 
     std::unique_ptr<BookController> controller_;
 
+    // A second connection, made only while a book is being created: that needs an administrator
+    // session, and the one the book is read through is an ordinary client.
+    std::unique_ptr<BookController> admin_controller_;
+    QString pending_book_name_;
+    QString pending_salt_;
+    QString pending_verifier_;
+
     QStackedWidget* pages_ = nullptr;
     QComboBox* book_combo_ = nullptr;
     QLineEdit* passphrase_edit_ = nullptr;
     QLabel* status_label_ = nullptr;
     QTreeWidget* preview_tree_ = nullptr;
     QLabel* summary_label_ = nullptr;
+    QPushButton* create_button_ = nullptr;
     QPushButton* back_button_ = nullptr;
     QPushButton* next_button_ = nullptr;
 

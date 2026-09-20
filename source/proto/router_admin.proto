@@ -154,12 +154,40 @@ message UserResult
     ErrorCode error_code = 2;
 }
 
+// Creating a shared address book for a department. Only an administrator does this: it is the
+// point everybody else joins to, and the router cannot check that a second one was not made by
+// mistake.
+//
+// The salt and the verifier are made by the console that creates it - the router never holds the
+// passphrase they come from, and never learns what the book contains.
+message BookCreateRequest
+{
+    string name         = 1;
+    bytes sync_salt     = 2;
+    bytes key_verifier  = 3;
+}
+
+message BookCreateResult
+{
+    enum ErrorCode
+    {
+        SUCCESS        = 0;
+        INTERNAL_ERROR = 1;
+        INVALID_DATA   = 2;
+        ALREADY_EXISTS = 3;
+    }
+
+    ErrorCode error_code = 1;
+    string guid          = 2; // Set on success.
+}
+
 message RouterToAdmin
 {
     SessionList session_list     = 1;
     SessionResult session_result = 2;
     UserList user_list           = 3;
     UserResult user_result       = 4;
+    BookCreateResult book_create_result = 5;
 }
 
 message AdminToRouter
@@ -169,4 +197,5 @@ message AdminToRouter
     UserListRequest user_list_request             = 3;
     UserRequest user_request                      = 4;
     PeerConnectionRequest peer_connection_request = 5;
+    BookCreateRequest book_create_request         = 6;
 }

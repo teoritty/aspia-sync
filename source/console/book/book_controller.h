@@ -61,9 +61,18 @@ class BookController final
       public base::Thread::Delegate
 {
 public:
+    // What the connection is for. A book is read and written from an ordinary client session; only
+    // creating one needs an administrator, and only an administrator can be given that right.
+    enum class Role
+    {
+        CLIENT = 0,
+        ADMIN
+    };
+
     // |ui_task_runner| is the task runner of the thread the delegate lives on.
     BookController(const client::RouterConfig& router_config,
-                   std::shared_ptr<base::TaskRunner> ui_task_runner);
+                   std::shared_ptr<base::TaskRunner> ui_task_runner,
+                   Role role = Role::CLIENT);
     ~BookController() final;
 
     class Delegate
@@ -88,6 +97,9 @@ public:
         // Somebody else changed something. It carries no content: what to do about it is to ask
         // for what is missing.
         virtual void onBookChanged(const proto::BookChanged& message) = 0;
+
+        // The answer to creating a book. |guid| is empty when it was refused.
+        virtual void onBookCreated(const std::string& guid, const std::string& error) {}
     };
 
     void start(Delegate* delegate);
@@ -98,6 +110,11 @@ public:
     void requestBookList(int64_t request_id);
     void requestPull(const proto::BookPullRequest& request);
     void requestPush(const proto::BookPushRequest& request);
+
+    // Administrator only. The salt and the verifier are made here; the router never holds the
+    // passphrase they come from.
+    void requestCreateBook(const std::string& name, const std::string& salt,
+                           const std::string& verifier);
 
 protected:
     // base::Thread::Delegate implementation.
@@ -113,7 +130,7 @@ protected:
 private:
     void connectToRouter();
     void scheduleReconnect();
-    void send(const google::protobuf::MessageLite& message);
+    void send(uint8_t channel_id, const google::protobuf::MessageLite& message);
 
     // Growing pause between attempts. Seven consoles all coming back the moment a restarted router
     // answers would arrive together and be refused together, and a fixed pause would only make
@@ -122,6 +139,7 @@ private:
     static const int kMaxReconnectSeconds = 300;
 
     const client::RouterConfig router_config_;
+    const Role role_;
 
     base::Thread io_thread_;
     std::shared_ptr<base::TaskRunner> io_task_runner_;
