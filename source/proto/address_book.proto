@@ -145,6 +145,51 @@ message Data
 
     // Display name when connected.
     string display_name = 7;
+
+    // Synchronization with a router. Personal to this copy of the book: it says what this console
+    // has and has not sent, and means nothing on another machine.
+    SyncState sync = 8;
+}
+
+// What the console remembers about synchronizing this book with a router.
+//
+// It lives in the book file so that it survives a restart: a console that forgot which revision it
+// had would ask for the whole book again, and one that forgot which edits it had not sent yet
+// would lose them.
+message SyncEntryState
+{
+    string guid = 1;
+
+    // The revision the base below was taken at.
+    int64 revision = 2;
+
+    // The record as the router had it when it was last seen. Merging a conflict takes three
+    // versions - this one, what is here now, and what the router has - and without the first it is
+    // impossible to tell which side changed a field, so both would have to be shown to a person
+    // even when only one of them touched anything.
+    bytes base_payload = 3;
+
+    // The record was changed here and the change has not reached the router yet.
+    bool dirty = 4;
+
+    // The record was deleted here and the deletion has not reached the router yet. Kept apart from
+    // the record being gone, because it has to be sent before it can be forgotten.
+    bool deleted = 5;
+}
+
+message SyncState
+{
+    // Empty means the book is not synchronized and stays on this machine alone.
+    string book_guid = 1;
+
+    // The epoch of the book when it was last read. A different one means the database of the
+    // router was restored from a backup and what is remembered about the revision refers to
+    // nothing.
+    string epoch = 2;
+
+    int64 last_pulled_revision = 3;
+
+    repeated SyncEntryState entry = 4;
 }
 
 message File
