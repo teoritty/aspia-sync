@@ -85,7 +85,6 @@
      <string>&amp;Edit</string>
     </property>
     <addaction name="action_address_book_properties"/>
-    <addaction name="action_sync"/>
     <addaction name="separator"/>
     <addaction name="action_add_computer_group"/>
     <addaction name="action_modify_computer_group"/>
@@ -151,11 +150,18 @@
     <addaction name="action_fast_connect"/>
     <addaction name="action_router_manage"/>
    </widget>
+   <widget class="QMenu" name="menu_sync">
+    <property name="title">
+     <string>S&amp;ynchronization</string>
+    </property>
+    <addaction name="action_sync"/>
+   </widget>
    <addaction name="menu_file"/>
    <addaction name="menu_edit"/>
    <addaction name="menu_view"/>
    <addaction name="menu_session_type"/>
    <addaction name="menuTools"/>
+   <addaction name="menu_sync"/>
    <addaction name="menu_help"/>
   </widget>
   <widget class="console::StatusBar" name="status_bar"/>
@@ -410,7 +416,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Synchronization...</string>
+    <string>Synchronization Settings...</string>
    </property>
    <property name="toolTip">
     <string>Share this address book with your department through the router</string>

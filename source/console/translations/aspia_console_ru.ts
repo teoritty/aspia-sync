@@ -507,250 +507,259 @@
         <translation>&amp;Правка</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="104"/>
+        <location filename="../main_window.ui" line="103"/>
         <source>&amp;Session Type</source>
         <translation>&amp;Тип сессии</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="114"/>
+        <location filename="../main_window.ui" line="113"/>
         <source>&amp;Help</source>
         <translation>П&amp;омощь</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="125"/>
+        <location filename="../main_window.ui" line="124"/>
         <source>&amp;View</source>
         <translation>&amp;Вид</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="129"/>
+        <location filename="../main_window.ui" line="128"/>
         <source>&amp;Language</source>
         <translation>&amp;Язык</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="149"/>
+        <location filename="../main_window.ui" line="148"/>
         <source>Tools</source>
         <translation>Инструменты</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="164"/>
-        <location filename="../main_window.ui" line="475"/>
+        <location filename="../main_window.ui" line="155"/>
+        <source>S&amp;ynchronization</source>
+        <translation>С&amp;инхронизация</translation>
+    </message>
+    <message>
+        <location filename="../main_window.ui" line="170"/>
+        <location filename="../main_window.ui" line="481"/>
         <source>Tool Bar</source>
         <translation>Панель инструментов</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="212"/>
+        <location filename="../main_window.ui" line="218"/>
         <source>&amp;New address book</source>
         <translation>&amp;Новая адресная книга</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="215"/>
+        <location filename="../main_window.ui" line="221"/>
         <source>Ctrl+N</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="224"/>
+        <location filename="../main_window.ui" line="230"/>
         <source>&amp;Open address book...</source>
         <translation>&amp;Открыть адресную книгу...</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="227"/>
+        <location filename="../main_window.ui" line="233"/>
         <source>Ctrl+O</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="239"/>
+        <location filename="../main_window.ui" line="245"/>
         <source>&amp;Save</source>
         <translation>&amp;Сохранить</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="242"/>
+        <location filename="../main_window.ui" line="248"/>
         <source>Ctrl+S</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="250"/>
+        <location filename="../main_window.ui" line="256"/>
         <source>Save &amp;as...</source>
         <translation>&amp;Сохранить как...</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="253"/>
+        <location filename="../main_window.ui" line="259"/>
         <source>Ctrl+Alt+S</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="261"/>
+        <location filename="../main_window.ui" line="267"/>
         <source>&amp;Close</source>
         <translation>&amp;Закрыть</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="264"/>
+        <location filename="../main_window.ui" line="270"/>
         <source>Ctrl+W</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="273"/>
+        <location filename="../main_window.ui" line="279"/>
         <source>&amp;Exit</source>
         <translation>&amp;Выход</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="285"/>
+        <location filename="../main_window.ui" line="291"/>
         <source>Add Computer Group</source>
         <translation>Добавить группу компьютеров</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="297"/>
+        <location filename="../main_window.ui" line="303"/>
         <source>Modify Computer Group</source>
         <translation>Изменить группу компьютеров</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="309"/>
+        <location filename="../main_window.ui" line="315"/>
         <source>Delete Computer Group</source>
         <translation>Удалить группу компьютеров</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="321"/>
+        <location filename="../main_window.ui" line="327"/>
         <source>Add Computer</source>
         <translation>Добавить компьютер</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="333"/>
+        <location filename="../main_window.ui" line="339"/>
         <source>Modify Computer</source>
         <translation>Изменить компьютер</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="345"/>
+        <location filename="../main_window.ui" line="351"/>
         <source>Delete Computer</source>
         <translation>Удалить компьютер</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="360"/>
+        <location filename="../main_window.ui" line="366"/>
         <source>Desktop &amp;Manage</source>
         <translation>Управление &amp;рабочим столом</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="372"/>
+        <location filename="../main_window.ui" line="378"/>
         <source>Desktop &amp;View</source>
         <translation>&amp;Просмотр рабочего стола</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="384"/>
+        <location filename="../main_window.ui" line="390"/>
         <source>&amp;File Transfer</source>
         <translation>Передача &amp;файлов</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="393"/>
+        <location filename="../main_window.ui" line="399"/>
         <source>&amp;Online Help...</source>
         <translation>Онлайн &amp;справка...</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="396"/>
+        <location filename="../main_window.ui" line="402"/>
         <source>F1</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="405"/>
+        <location filename="../main_window.ui" line="411"/>
         <source>&amp;About</source>
         <translation>&amp;О программе</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="413"/>
+        <location filename="../main_window.ui" line="419"/>
+        <source>Synchronization Settings...</source>
+        <translation>Настройки синхронизации…</translation>
+    </message>
+    <message>
         <source>Synchronization...</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Синхронизация…</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="416"/>
+        <location filename="../main_window.ui" line="422"/>
         <source>Share this address book with your department through the router</source>
-        <translation type="unfinished"></translation>
+        <translation>Сделать эту адресную книгу общей для отдела через роутер</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="428"/>
+        <location filename="../main_window.ui" line="434"/>
         <source>Address Book Properties</source>
         <translation>Свойства адресной книги</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="437"/>
-        <location filename="../main_window.ui" line="440"/>
+        <location filename="../main_window.ui" line="443"/>
+        <location filename="../main_window.ui" line="446"/>
         <source>Desktop Manage</source>
         <translation>Управление рабочим столом</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="449"/>
-        <location filename="../main_window.ui" line="452"/>
+        <location filename="../main_window.ui" line="455"/>
+        <location filename="../main_window.ui" line="458"/>
         <source>Desktop View</source>
         <translation>Просмотр рабочего стола</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="461"/>
-        <location filename="../main_window.ui" line="464"/>
+        <location filename="../main_window.ui" line="467"/>
+        <location filename="../main_window.ui" line="470"/>
         <source>File Transfer</source>
         <translation>Передача файлов</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="486"/>
+        <location filename="../main_window.ui" line="492"/>
         <source>Status Bar</source>
         <translation>Строка состояния</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="498"/>
+        <location filename="../main_window.ui" line="504"/>
         <source>Fast Connect</source>
         <translation>Быстрое подключение</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="501"/>
+        <location filename="../main_window.ui" line="507"/>
         <source>F8</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="598"/>
+        <location filename="../main_window.ui" line="604"/>
         <source>Router Manage</source>
         <translation>Управление маршрутизатором</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="606"/>
+        <location filename="../main_window.ui" line="612"/>
         <source>Show icons in menus</source>
         <translation>Показывать значки в меню</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="618"/>
+        <location filename="../main_window.ui" line="624"/>
         <source>&amp;System Information</source>
         <translation>&amp;Информация о системе</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="621"/>
-        <location filename="../main_window.ui" line="630"/>
-        <location filename="../main_window.ui" line="633"/>
+        <location filename="../main_window.ui" line="627"/>
+        <location filename="../main_window.ui" line="636"/>
+        <location filename="../main_window.ui" line="639"/>
         <source>System Information</source>
         <translation>Информация о системе</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="645"/>
+        <location filename="../main_window.ui" line="651"/>
         <source>&amp;Text Chat</source>
         <translation>&amp;Текстовый чат</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="648"/>
-        <location filename="../main_window.ui" line="657"/>
-        <location filename="../main_window.ui" line="660"/>
+        <location filename="../main_window.ui" line="654"/>
+        <location filename="../main_window.ui" line="663"/>
+        <location filename="../main_window.ui" line="666"/>
         <source>Text Chat</source>
         <translation>Текстовый чат</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="672"/>
+        <location filename="../main_window.ui" line="678"/>
         <source>Update Status</source>
         <translation>Обновить состояние</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="675"/>
+        <location filename="../main_window.ui" line="681"/>
         <source>Update the status of computers in the list</source>
         <translation>Обновить состояние компьютеров в списке</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="678"/>
+        <location filename="../main_window.ui" line="684"/>
         <source>F5</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="690"/>
+        <location filename="../main_window.ui" line="696"/>
         <source>Import Computers/Groups</source>
         <translation>Импорт компьютеров/групп</translation>
     </message>
@@ -759,17 +768,17 @@
         <translation type="vanished">Импорт компьютеров</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="693"/>
+        <location filename="../main_window.ui" line="699"/>
         <source>Import computers from file</source>
         <translation>Импорт компьютеров из файла</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="705"/>
+        <location filename="../main_window.ui" line="711"/>
         <source>Export Computer Group</source>
         <translation>Экспорт группы компьютеров</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="708"/>
+        <location filename="../main_window.ui" line="714"/>
         <source>Export computer group to file</source>
         <translation>Экспорт группы компьютеров в файл</translation>
     </message>
@@ -782,62 +791,62 @@
         <translation type="vanished">Экспорт компьютеров в файл</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="509"/>
+        <location filename="../main_window.ui" line="515"/>
         <source>Show tray icon</source>
         <translation>Показывать иконку в трее</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="517"/>
+        <location filename="../main_window.ui" line="523"/>
         <source>Minimize to tray</source>
         <translation>Сворачивать в трей</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="522"/>
+        <location filename="../main_window.ui" line="528"/>
         <source>Hide</source>
         <translation>Спрятать</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="534"/>
+        <location filename="../main_window.ui" line="540"/>
         <source>Save all</source>
         <translation>Сохранить все</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="537"/>
+        <location filename="../main_window.ui" line="543"/>
         <source>Ctrl+Shift+S</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="545"/>
+        <location filename="../main_window.ui" line="551"/>
         <source>Close all</source>
         <translation>Закрыть все</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="548"/>
+        <location filename="../main_window.ui" line="554"/>
         <source>Ctrl+Shift+W</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="553"/>
+        <location filename="../main_window.ui" line="559"/>
         <source>Check for updates...</source>
         <translation>Проверить обновления...</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="558"/>
+        <location filename="../main_window.ui" line="564"/>
         <source>Update Settings</source>
         <translation>Параметры обновления</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="563"/>
+        <location filename="../main_window.ui" line="569"/>
         <source>Clear</source>
         <translation>Очистить</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="574"/>
+        <location filename="../main_window.ui" line="580"/>
         <source>Remember latest</source>
         <translation>Сохранять последние</translation>
     </message>
     <message>
-        <location filename="../main_window.ui" line="586"/>
+        <location filename="../main_window.ui" line="592"/>
         <source>Copy Computer</source>
         <translation>Копировать компьютер</translation>
     </message>
@@ -1568,17 +1577,17 @@
     <message>
         <location filename="../main_window.cc" line="497"/>
         <source>This address book has no router configured. Synchronization goes through a router, so one has to be set up in the address book properties first.</source>
-        <translation type="unfinished"></translation>
+        <translation>В этой адресной книге не настроен роутер. Синхронизация идёт через роутер, поэтому его нужно сначала указать в свойствах книги.</translation>
     </message>
     <message>
         <location filename="../main_window.cc" line="517"/>
         <source>A copy of the address book could not be made, so nothing was changed.</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось сделать копию адресной книги, поэтому ничего не изменено.</translation>
     </message>
     <message>
         <location filename="../main_window.cc" line="527"/>
         <source>Synchronization could not be turned on.</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось включить синхронизацию.</translation>
     </message>
     <message>
         <location filename="../main_window.cc" line="1045"/>
@@ -1718,81 +1727,85 @@
     <message>
         <location filename="../sync_dialog.cc" line="54"/>
         <source>Address Book Synchronization</source>
-        <translation type="unfinished"></translation>
+        <translation>Синхронизация адресной книги</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="67"/>
         <source>State:</source>
-        <translation type="unfinished"></translation>
+        <translation>Состояние:</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="68"/>
         <source>Waiting to be sent:</source>
-        <translation type="unfinished"></translation>
+        <translation>Ожидает отправки:</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="72"/>
         <source>Changes are sent as soon as they are made, and what colleagues change arrives on its own. Nothing has to be saved by hand.</source>
-        <translation type="unfinished"></translation>
+        <translation>Изменения отправляются сразу, а правки коллег приходят сами. Сохранять вручную ничего не нужно.</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="79"/>
         <source>Stop synchronizing this book</source>
-        <translation type="unfinished"></translation>
+        <translation>Прекратить синхронизацию этой книги</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="83"/>
         <source>State</source>
-        <translation type="unfinished"></translation>
+        <translation>Состояние</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="90"/>
         <source>These computers were changed here and by somebody else in the same field, so neither version can be taken without losing the other. Until one is chosen, what you see in the book is your own version.</source>
-        <translation type="unfinished"></translation>
+        <translation>Эти компьютеры изменены и здесь, и кем-то ещё в одном и том же поле, поэтому взять одну версию нельзя, не потеряв другую. Пока выбор не сделан, в книге показана ваша версия.</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="99"/>
         <source>Computer</source>
-        <translation type="unfinished"></translation>
+        <translation>Компьютер</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="104"/>
         <source>Conflicts</source>
-        <translation type="unfinished"></translation>
+        <translation>Конфликты</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="124"/>
         <source>Not synchronized</source>
-        <translation type="unfinished"></translation>
+        <translation>Не синхронизируется</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="130"/>
         <source>Stopped. The router was restored from a backup, or the passphrase no longer matches. Join the book again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Остановлено. Роутер восстановлен из резервной копии либо пароль больше не подходит. Присоединитесь к книге заново.</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="136"/>
         <source>Synchronized</source>
-        <translation type="unfinished"></translation>
+        <translation>Синхронизируется</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="141"/>
         <source>Offline. Changes are kept and will be sent when the router is reachable again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Нет связи. Изменения сохраняются и уйдут, когда роутер снова будет доступен.</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="172"/>
         <source>Stop synchronizing this address book?
 
 The book stays exactly as it is and becomes an ordinary local file again. Changes made here will no longer reach your colleagues, and theirs will no longer reach you.</source>
-        <translation type="unfinished"></translation>
+        <translation>Прекратить синхронизацию этой адресной книги?
+
+Книга останется в точности такой, как есть, и снова станет обычным локальным файлом. Ваши изменения перестанут доходить до коллег, а их изменения — до вас.</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="180"/>
         <source>
 
 %1 change(s) have not been sent yet and will stay on this machine only.</source>
-        <translation type="unfinished"></translation>
+        <translation>
+
+Неотправленных изменений: %1. Они останутся только на этой машине.</translation>
     </message>
     <message>
         <location filename="../sync_dialog.cc" line="185"/>
@@ -1805,104 +1818,105 @@ The book stays exactly as it is and becomes an ordinary local file again. Change
     <message>
         <location filename="../sync_wizard.cc" line="63"/>
         <source>Connecting to the router...</source>
-        <translation type="unfinished"></translation>
+        <translation>Подключение к роутеру…</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="76"/>
         <source>Address Book Synchronization</source>
-        <translation type="unfinished"></translation>
+        <translation>Синхронизация адресной книги</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="86"/>
         <source>Choose the shared address book and enter the passphrase agreed in your department.
 The passphrase is what the records are encrypted with. The router never learns it.</source>
-        <translation type="unfinished"></translation>
+        <translation>Выберите общую адресную книгу и введите пароль, о котором договорился отдел.
+Этим паролем шифруются записи. Роутер его не узнаёт.</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="97"/>
         <source>Shared book:</source>
-        <translation type="unfinished"></translation>
+        <translation>Общая книга:</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="98"/>
         <source>Passphrase:</source>
-        <translation type="unfinished"></translation>
+        <translation>Пароль:</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="113"/>
         <source>Computers are recognized by the address they are reached at, so the same machine is found even where it is named differently. Nothing has been changed yet.</source>
-        <translation type="unfinished"></translation>
+        <translation>Компьютеры опознаются по адресу, по которому к ним подключаются, поэтому одна и та же машина находится даже под разными именами. Пока ничего не изменено.</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="122"/>
         <source>In this book</source>
-        <translation type="unfinished"></translation>
+        <translation>В этой книге</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="122"/>
         <source>In the shared book</source>
-        <translation type="unfinished"></translation>
+        <translation>В общей книге</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="122"/>
         <source>Address</source>
-        <translation type="unfinished"></translation>
+        <translation>Адрес</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="141"/>
         <source>Back</source>
-        <translation type="unfinished"></translation>
+        <translation>Назад</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="142"/>
         <location filename="../sync_wizard.cc" line="176"/>
         <source>Next</source>
-        <translation type="unfinished"></translation>
+        <translation>Далее</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="176"/>
         <source>Join</source>
-        <translation type="unfinished"></translation>
+        <translation>Присоединить</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="235"/>
         <source>Enter the passphrase.</source>
-        <translation type="unfinished"></translation>
+        <translation>Введите пароль.</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="242"/>
         <source>The router did not send a usable salt for this book.</source>
-        <translation type="unfinished"></translation>
+        <translation>Роутер не прислал пригодную соль для этой книги.</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="250"/>
         <source>The passphrase does not match this book.</source>
-        <translation type="unfinished"></translation>
+        <translation>Пароль не подходит к этой книге.</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="264"/>
         <source>Reading the shared book...</source>
-        <translation type="unfinished"></translation>
+        <translation>Чтение общей книги…</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="289"/>
         <source>The same computers (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>Те же компьютеры (%1)</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="303"/>
         <source>The names differ. The shared name will be used.</source>
-        <translation type="unfinished"></translation>
+        <translation>Имена различаются. Будет использовано имя из общей книги.</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="309"/>
         <source>Only in this book, will be added (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>Только в этой книге, будут добавлены (%1)</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="313"/>
         <source>Could not be decided, left as they are (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось решить, останутся как есть (%1)</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="320"/>
@@ -1914,32 +1928,39 @@ The passphrase is what the records are encrypted with. The router never learns i
 
 A copy of the current address book file is made before anything is written.
 Synchronization can be switched off later; the book stays as it is.</source>
-        <translation type="unfinished"></translation>
+        <translation>Присоединение к книге «%1».
+
+  %2 компьютеров уже есть там и станут одной записью.
+  %3 компьютеров с этой машины будут добавлены для всех.
+  %4 не удалось решить, они останутся как есть.
+
+Копия текущего файла адресной книги делается до любой записи.
+Синхронизацию можно выключить позже, книга при этом останется как есть.</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="339"/>
         <source>Reading the list of shared books...</source>
-        <translation type="unfinished"></translation>
+        <translation>Чтение списка общих книг…</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="347"/>
         <source>The connection to the router was lost.</source>
-        <translation type="unfinished"></translation>
+        <translation>Связь с роутером потеряна.</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="355"/>
         <source>The router refused the account stored in this address book.</source>
-        <translation type="unfinished"></translation>
+        <translation>Роутер отклонил учётную запись, сохранённую в этой адресной книге.</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="376"/>
         <source>The router has no shared address books yet. One has to be created by an administrator.</source>
-        <translation type="unfinished"></translation>
+        <translation>На роутере пока нет общих адресных книг. Её должен создать администратор.</translation>
     </message>
     <message>
         <location filename="../sync_wizard.cc" line="393"/>
         <source>The router refused to send the book.</source>
-        <translation type="unfinished"></translation>
+        <translation>Роутер отказался отдать книгу.</translation>
     </message>
 </context>
 <context>
