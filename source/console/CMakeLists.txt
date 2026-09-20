@@ -123,11 +123,14 @@ list(APPEND SOURCE_CONSOLE_BOOK
     book/entry_guid.cc
     book/entry_guid.h
     book/flat_book.cc
-    book/flat_book.h)
+    book/flat_book.h
+    book/sync_key.cc
+    book/sync_key.h)
 
 list(APPEND SOURCE_CONSOLE_BOOK_TESTS
     book/entry_guid_unittest.cc
-    book/flat_book_unittest.cc)
+    book/flat_book_unittest.cc
+    book/sync_key_unittest.cc)
 
 add_library(aspia_console_book STATIC ${SOURCE_CONSOLE_BOOK})
 target_link_libraries(aspia_console_book
