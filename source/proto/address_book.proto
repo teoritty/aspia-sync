@@ -180,6 +180,13 @@ message SyncEntryState
     // The record was deleted here and the deletion has not reached the router yet. Kept apart from
     // the record being gone, because it has to be sent before it can be forgotten.
     bool deleted = 5;
+
+    // This record and the one on the router were changed in the same field, to different things,
+    // and no merge can take both. It is not sent while this is set: the router would refuse it,
+    // the refusal would be merged, the merge would fail again, and the two of them would go round
+    // that loop for as long as the console was open. It waits for a person instead, and |dirty|
+    // stays on so that what they decide still goes out afterwards.
+    bool conflict = 7;
 }
 
 message SyncState

@@ -102,6 +102,11 @@ public:
     const std::vector<std::string>& conflicts() const { return conflicts_; }
     void clearConflict(const std::string& guid);
 
+    // Says which version of a record is meant, and starts an exchange so that the answer goes out
+    // at once rather than at whatever the next edit happens to be.
+    bool resolveConflict(const std::string& guid, bool keep_local,
+                         proto::address_book::Data* data);
+
 private:
     void pushOrPull(proto::address_book::Data* data);
     void requestPull(const proto::address_book::Data& data);
@@ -119,6 +124,11 @@ private:
     bool again_ = false;
 
     std::string op_id_;
+
+    // How far into the book the current walk has got. Pages are taken by offset because the
+    // revision stays where it was until the last one of them arrives.
+    int64_t pull_offset_ = 0;
+
     std::vector<std::string> conflicts_;
 
     DISALLOW_COPY_AND_ASSIGN(BookSync);

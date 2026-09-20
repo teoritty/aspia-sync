@@ -71,7 +71,8 @@ list(APPEND SOURCE_ROUTER_BOOK
     book/book_store.h)
 
 list(APPEND SOURCE_ROUTER_BOOK_TESTS
-    book/book_store_unittest.cc)
+    book/book_store_unittest.cc
+    book/sync_roundtrip_unittest.cc)
 
 add_library(aspia_router_book STATIC ${SOURCE_ROUTER_BOOK})
 target_link_libraries(aspia_router_book
@@ -80,9 +81,12 @@ target_link_libraries(aspia_router_book
     ${Protobuf_LITE_LIBRARIES}
     unofficial::sqlite3::sqlite3)
 
+# The roundtrip test drives the console side of the exchange against the router side, so the test
+# executable - and nothing that ships - links both halves.
 add_executable(aspia_router_tests ${SOURCE_ROUTER_BOOK_TESTS})
 target_link_libraries(aspia_router_tests PRIVATE
     aspia_router_book
+    aspia_console_book
     aspia_base
     aspia_proto
     GTest::gtest

@@ -82,9 +82,13 @@ void BookSync::pushOrPull(proto::address_book::Data* data)
 //--------------------------------------------------------------------------------------------------
 void BookSync::requestPull(const proto::address_book::Data& data)
 {
+    // A fresh walk through the book starts at the beginning of it.
+    pull_offset_ = 0;
+
     proto::BookPullRequest request;
     request.set_book_guid(data.sync().book_guid());
     request.set_since_revision(data.sync().last_pulled_revision());
+    request.set_offset(pull_offset_);
 
     sender_->sendPull(request);
 }
@@ -165,12 +169,17 @@ void BookSync::onPull(const proto::BookPull& page, proto::address_book::Data* da
 
     if (page.has_more())
     {
-        // More is waiting. Asking from the revision just stored would ask for the same page again,
-        // so the next one is taken by moving along the page rather than by the revision.
+        // More is waiting. The revision does not move until the last page, so asking by revision
+        // would fetch this same page again; the next one is taken by moving along. The offset has
+        // to be how far into the book we are, not how big the page just handled was - otherwise
+        // every page after the first asks for the second one, and a large book never finishes
+        // arriving.
+        pull_offset_ += page.entry_size();
+
         proto::BookPullRequest request;
         request.set_book_guid(data->sync().book_guid());
         request.set_since_revision(data->sync().last_pulled_revision());
-        request.set_offset(page.entry_size());
+        request.set_offset(pull_offset_);
 
         sender_->sendPull(request);
         return;
@@ -214,6 +223,20 @@ void BookSync::onBookChanged(const proto::BookChanged& message, proto::address_b
     }
 
     start(data);
+}
+
+//--------------------------------------------------------------------------------------------------
+bool BookSync::resolveConflict(const std::string& guid, bool keep_local,
+                               proto::address_book::Data* data)
+{
+    if (!engine_.resolveConflict(guid, keep_local, data))
+        return false;
+
+    clearConflict(guid);
+
+    observer_->onBookUpdated();
+    start(data);
+    return true;
 }
 
 //--------------------------------------------------------------------------------------------------

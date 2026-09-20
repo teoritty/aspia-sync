@@ -104,6 +104,9 @@ public:
     // guid itself for a record that is no longer in the book.
     QString computerNameByGuid(const QString& guid) const;
 
+    // Says which of the two versions of a record is meant. |keep_local| keeps what is in this book
+    // and sends it to the colleagues; otherwise their version is taken and this one given up.
+    bool resolveSyncConflict(const QString& guid, bool keep_local);
 
     void retranslateUi();
 

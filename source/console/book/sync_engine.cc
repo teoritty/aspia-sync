@@ -89,6 +89,17 @@ SyncEntryState* stateFor(Data* data, const std::string& guid)
 }
 
 //--------------------------------------------------------------------------------------------------
+// Sets a record aside for a person to decide about.
+//
+// It stays pending, so that whatever they choose still goes out, but it stops being sent until
+// then: the router refuses it, the refusal fails to merge, and the two of them would go round that
+// loop for as long as the console stayed open.
+void holdForPerson(Data* data, const std::string& guid)
+{
+    stateFor(data, guid)->set_conflict(true);
+}
+
+//--------------------------------------------------------------------------------------------------
 void removeState(Data* data, const std::string& guid)
 {
     proto::address_book::SyncState* sync = data->mutable_sync();
@@ -252,6 +263,21 @@ SyncEngine::PullOutcome SyncEngine::applyPull(const proto::BookPull& page, Data*
             {
                 // Somebody deleted it while this console was editing it. Which of the two is meant
                 // is not for this code to decide.
+                //
+                // The base payload is emptied to say that the router holds nothing readable for
+                // this record now, which is what tells the two answers apart later: keeping it
+                // puts it back, giving it up removes it here as well.
+                //
+                // The revision stays what the router said. It is the revision of the headstone,
+                // and putting the record back means writing over that headstone - which the
+                // router only accepts from somebody who knew it was there.
+                SyncEntryState* held = stateFor(data, remote.guid());
+                held->set_revision(remote.revision());
+                held->clear_base_payload();
+                held->clear_base_parent_guid();
+                held->set_dirty(true);
+                held->set_conflict(true);
+
                 outcome.conflicts.emplace_back(remote.guid());
                 continue;
             }
@@ -314,6 +340,17 @@ SyncEngine::PullOutcome SyncEngine::applyPull(const proto::BookPull& page, Data*
         {
             // The local value stays, so the person keeps seeing what they typed. It also stays
             // pending, so once they decide it goes out.
+            //
+            // The base moves to what the router has all the same. What the person decides has to
+            // be built on that: keeping the old base would have the router refuse their answer as
+            // stale, and the question would come back a second time for no reason.
+            SyncEntryState* held = stateFor(data, remote.guid());
+            held->set_revision(remote.revision());
+            held->set_base_payload(payload->second);
+            held->set_base_parent_guid(remote.parent_guid());
+            held->set_dirty(true);
+            held->set_conflict(true);
+
             outcome.conflicts.emplace_back(remote.guid());
             continue;
         }
@@ -388,6 +425,9 @@ bool SyncEngine::buildPush(const Data& data, const std::string& op_id,
         const SyncEntryState& state = data.sync().entry(i);
         if (!state.dirty() && !state.deleted())
             continue;
+
+        if (state.conflict())
+            continue; // Waiting for a person. See holdForPerson.
 
         proto::BookChangeData* change = request->add_change();
         change->set_guid(state.guid());
@@ -481,6 +521,7 @@ SyncEngine::PushOutcome SyncEngine::applyPushResult(const proto::BookPushResult&
                 if (!state || it == index.end() || !entry.has_current())
                 {
                     outcome.conflicts.emplace_back(entry.guid());
+                    holdForPerson(data, entry.guid());
                     break;
                 }
 
@@ -488,6 +529,7 @@ SyncEngine::PushOutcome SyncEngine::applyPushResult(const proto::BookPushResult&
                 if (!openPayload(sync_key_, entry.current().payload(), &remote))
                 {
                     outcome.conflicts.emplace_back(entry.guid());
+                    holdForPerson(data, entry.guid());
                     break;
                 }
 
@@ -496,7 +538,14 @@ SyncEngine::PushOutcome SyncEngine::applyPushResult(const proto::BookPushResult&
                                   entries[it->second].payload, remote, &merged))
                 {
                     // Both sides changed the same field. It waits for a person, and stays pending
-                    // so that it goes out once they decide.
+                    // so that it goes out once they decide - built on what the router has now, so
+                    // that their answer is not refused as stale.
+                    state->set_revision(entry.current().revision());
+                    state->set_base_payload(remote);
+                    state->set_base_parent_guid(entry.current().parent_guid());
+                    state->set_dirty(true);
+                    state->set_conflict(true);
+
                     outcome.conflicts.emplace_back(entry.guid());
                     break;
                 }
@@ -531,6 +580,55 @@ SyncEngine::PushOutcome SyncEngine::applyPushResult(const proto::BookPushResult&
         rebuildBook(entries, data->mutable_root_group(), nullptr);
 
     return outcome;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool SyncEngine::resolveConflict(const std::string& guid, bool keep_local, Data* data)
+{
+    if (!data)
+        return false;
+
+    SyncEntryState* state = findState(data, guid);
+    if (!state || !state->conflict())
+        return false;
+
+    state->set_conflict(false);
+
+    if (keep_local)
+    {
+        // What is in the book stays and goes out on the next exchange. The base under it is what
+        // the router has, so it is not refused as stale this time.
+        state->set_dirty(true);
+        return true;
+    }
+
+    // Theirs. What this console had is given up and the record goes back to the base, which is the
+    // version the question was asked about.
+    std::vector<FlatEntry> entries = flattenBook(data->root_group());
+
+    for (auto it = entries.begin(); it != entries.end(); ++it)
+    {
+        if (it->guid != guid)
+            continue;
+
+        if (state->base_payload().empty())
+        {
+            // The router has nothing for it: somebody deleted it. Giving up the local version
+            // means letting the deletion through.
+            entries.erase(it);
+            rebuildBook(entries, data->mutable_root_group(), nullptr);
+            removeState(data, guid);
+            return true;
+        }
+
+        it->payload = state->base_payload();
+        it->parent_guid = state->base_parent_guid();
+        rebuildBook(entries, data->mutable_root_group(), nullptr);
+        break;
+    }
+
+    state->set_dirty(false);
+    return true;
 }
 
 } // namespace console

@@ -116,6 +116,17 @@ public:
         std::vector<std::string> conflicts;
     };
 
+    // Settles a record that was changed here and by somebody else in the same field, and that has
+    // been waiting for somebody to say which version is meant.
+    //
+    // |keep_local| keeps what is in this book and sends it; otherwise what the router has is taken
+    // and the local version is given up. When the other side deleted the record, keeping it sends
+    // it again as a new one and giving it up removes it here too.
+    //
+    // Returns false when the record is not one that is waiting.
+    bool resolveConflict(const std::string& guid, bool keep_local,
+                         proto::address_book::Data* data);
+
     // Takes the answer to a batch. What was accepted stops being pending; what was refused is
     // merged where it can be and set aside where it cannot.
     PushOutcome applyPushResult(const proto::BookPushResult& result,

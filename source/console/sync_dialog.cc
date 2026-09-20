@@ -23,6 +23,7 @@
 
 #include <QDialogButtonBox>
 #include <QFormLayout>
+#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
 #include <QMessageBox>
@@ -99,7 +100,23 @@ void SyncDialog::buildUi()
     conflict_tree_->setHeaderLabels(QStringList() << tr("Computer"));
     conflict_tree_->setRootIsDecorated(false);
     conflict_tree_->header()->setStretchLastSection(true);
+    connect(conflict_tree_, &QTreeWidget::itemSelectionChanged,
+            this, &SyncDialog::onConflictSelectionChanged);
     conflict_layout->addWidget(conflict_tree_);
+
+    // One record at a time, and said in terms of whose version wins rather than of what the
+    // machinery does with it.
+    keep_mine_button_ = new QPushButton(tr("Keep my version"), conflict_page);
+    take_theirs_button_ = new QPushButton(tr("Take their version"), conflict_page);
+
+    connect(keep_mine_button_, &QPushButton::clicked, this, &SyncDialog::onKeepMine);
+    connect(take_theirs_button_, &QPushButton::clicked, this, &SyncDialog::onTakeTheirs);
+
+    QHBoxLayout* conflict_buttons = new QHBoxLayout();
+    conflict_buttons->addStretch();
+    conflict_buttons->addWidget(keep_mine_button_);
+    conflict_buttons->addWidget(take_theirs_button_);
+    conflict_layout->addLayout(conflict_buttons);
 
     tabs->addTab(conflict_page, tr("Conflicts"));
 
@@ -153,6 +170,64 @@ void SyncDialog::updateStatus()
         item->setText(0, tab_->computerNameByGuid(QString::fromStdString(guid)));
         item->setData(0, Qt::UserRole, QString::fromStdString(guid));
     }
+
+    onConflictSelectionChanged();
+}
+
+//--------------------------------------------------------------------------------------------------
+void SyncDialog::onConflictSelectionChanged()
+{
+    const bool has_selection = (conflict_tree_->currentItem() != nullptr);
+
+    keep_mine_button_->setEnabled(has_selection);
+    take_theirs_button_->setEnabled(has_selection);
+}
+
+//--------------------------------------------------------------------------------------------------
+void SyncDialog::onKeepMine()
+{
+    resolveSelected(true);
+}
+
+//--------------------------------------------------------------------------------------------------
+void SyncDialog::onTakeTheirs()
+{
+    resolveSelected(false);
+}
+
+//--------------------------------------------------------------------------------------------------
+void SyncDialog::resolveSelected(bool keep_local)
+{
+    if (!tab_)
+        return;
+
+    QTreeWidgetItem* item = conflict_tree_->currentItem();
+    if (!item)
+        return;
+
+    const QString name = item->text(0);
+
+    if (!keep_local)
+    {
+        // Their version replaces what is here, and what is here is gone once it does. Sending
+        // one's own version can be undone by editing the record again; this cannot.
+        const QMessageBox::StandardButton answer = QMessageBox::question(
+            this, tr("Confirmation"),
+            tr("Replace \"%1\" with the version your colleagues have?\n\n"
+               "What you changed here will be lost.").arg(name),
+            QMessageBox::Yes | QMessageBox::No);
+
+        if (answer != QMessageBox::Yes)
+            return;
+    }
+
+    if (!tab_->resolveSyncConflict(item->data(0, Qt::UserRole).toString(), keep_local))
+    {
+        LOG(LS_ERROR) << "Unable to resolve the conflict for " << name.toStdString();
+        return;
+    }
+
+    updateStatus();
 }
 
 //--------------------------------------------------------------------------------------------------

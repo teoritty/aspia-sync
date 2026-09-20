@@ -25,6 +25,7 @@
 #include <QPointer>
 
 class QLabel;
+class QPushButton;
 class QTreeWidget;
 
 namespace console {
@@ -48,10 +49,14 @@ public:
 private slots:
     void onSyncStatusChanged();
     void onStopSync();
+    void onConflictSelectionChanged();
+    void onKeepMine();
+    void onTakeTheirs();
 
 private:
     void buildUi();
     void updateStatus();
+    void resolveSelected(bool keep_local);
 
     // The tab outlives the dialog in ordinary use, but a book can be closed from elsewhere while
     // this is open, so it is not held as a bare pointer.
@@ -60,6 +65,8 @@ private:
     QLabel* state_label_ = nullptr;
     QLabel* pending_label_ = nullptr;
     QTreeWidget* conflict_tree_ = nullptr;
+    QPushButton* keep_mine_button_ = nullptr;
+    QPushButton* take_theirs_button_ = nullptr;
 
     DISALLOW_COPY_AND_ASSIGN(SyncDialog);
 };

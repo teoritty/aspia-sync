@@ -1257,6 +1257,17 @@ QString AddressBookTab::computerNameByGuid(const QString& guid) const
 }
 
 //--------------------------------------------------------------------------------------------------
+bool AddressBookTab::resolveSyncConflict(const QString& guid, bool keep_local)
+{
+    if (!book_sync_)
+        return false;
+
+    // The book is written and redrawn by onBookUpdated, which the resolution triggers on its way
+    // through, so there is nothing to do here but report whether it took.
+    return book_sync_->resolveConflict(guid.toStdString(), keep_local, &data_);
+}
+
+//--------------------------------------------------------------------------------------------------
 void AddressBookTab::startSyncIfEnabled()
 {
     if (!book_sync_ || !sync_connected_ || sync_stopped_)
