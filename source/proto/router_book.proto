@@ -1,0 +1,217 @@
+//
+// Aspia Project
+// Copyright (C) 2016-2024 Dmitry Chapyshev <dmitry@aspia.ru>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+//
+
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package proto;
+
+// Synchronization of the shared address book between the consoles of a department and the router.
+//
+// These messages travel on a channel of their own, served only to client sessions. Hosts and
+// relays authenticate with the router as well, and a host stands on a machine at a customer's
+// site that nobody here controls; the address book, with the credentials of every such machine in
+// it, must not be reachable from there.
+//
+// What the router stores is sealed with a key it does not have (see console/book/sync_key.h), so
+// |payload| is opaque to it and it never attempts to read one.
+
+enum BookErrorCode
+{
+    BOOK_ERROR_CODE_UNKNOWN         = 0;
+    BOOK_ERROR_CODE_OK              = 1;
+    BOOK_ERROR_CODE_INVALID_REQUEST = 2;
+    BOOK_ERROR_CODE_NOT_FOUND       = 3;
+    BOOK_ERROR_CODE_INTERNAL_ERROR  = 4;
+}
+
+enum BookEntryKind
+{
+    BOOK_ENTRY_KIND_GROUP    = 0;
+    BOOK_ENTRY_KIND_COMPUTER = 1;
+}
+
+// What became of one requested change.
+enum BookChangeStatus
+{
+    BOOK_CHANGE_STATUS_UNKNOWN = 0;
+    BOOK_CHANGE_STATUS_OK      = 1;
+
+    // Somebody else changed the record after the console last saw it. |current| carries what is
+    // there now, so the console can merge and send the result.
+    BOOK_CHANGE_STATUS_CONFLICT = 2;
+
+    // The change cannot be placed at all: a guid that is not one, a group moved inside itself, a
+    // record with nothing in it.
+    BOOK_CHANGE_STATUS_REJECTED = 3;
+}
+
+message BookInfo
+{
+    string guid  = 1;
+    string name  = 2;
+
+    // The salt the key is derived from, and a value sealed with that key. A console checks the
+    // second before it writes anything: without it, somebody who mistyped the passphrase would
+    // seal records with a key nobody else has and nothing would say so.
+    bytes sync_salt    = 3;
+    bytes key_verifier = 4;
+
+    // Replaced when the database of the router is restored from a backup. A console that sees an
+    // epoch other than the one it worked with knows its revision refers to nothing.
+    string epoch   = 5;
+    int64 revision = 6;
+}
+
+message BookEntryData
+{
+    string guid        = 1;
+    string parent_guid = 2; // Empty for the root of the book.
+    BookEntryKind kind = 3;
+
+    int64 revision = 4;
+
+    // The time of the router, which orders changes, and the time of the client, which is kept only
+    // to be shown to a person. A machine whose clock runs fast must not win every conflict.
+    int64 server_time = 5;
+    int64 client_time = 6;
+
+    // Name of the computer the change came from. The department shares one router account, so the
+    // account cannot say who did anything and the machine can.
+    string modified_by = 7;
+
+    // A deleted record is sent as a headstone: a console that was offline has to learn about a
+    // deletion as much as about an edit. A headstone carries no payload.
+    bool deleted      = 8;
+    int64 deleted_at  = 9;
+
+    bytes payload = 10;
+}
+
+message BookListRequest
+{
+    int64 request_id = 1;
+}
+
+message BookList
+{
+    int64 request_id         = 1;
+    BookErrorCode error_code = 2;
+    repeated BookInfo book   = 3;
+}
+
+// Everything that changed after |since_revision|. Zero asks for the whole book.
+message BookPullRequest
+{
+    int64 request_id      = 1;
+    string book_guid      = 2;
+    int64 since_revision  = 3;
+
+    // The page. A book of several hundred records with comments in them can pass the message size
+    // limit of the channel, and a message over it does not fail - it ends the connection.
+    int64 offset = 4;
+    int64 count  = 5;
+}
+
+message BookPull
+{
+    int64 request_id         = 1;
+    BookErrorCode error_code = 2;
+    string book_guid         = 3;
+
+    // The revision and the epoch the answer was taken at. A console stores them and asks from
+    // there next time; a revision lower than the one it has means the router went back in time,
+    // which happens when its database is restored from a backup.
+    int64 revision = 4;
+    string epoch   = 5;
+
+    bool has_more = 6;
+    repeated BookEntryData entry = 7;
+}
+
+message BookChangeData
+{
+    string guid        = 1;
+    string parent_guid = 2;
+    BookEntryKind kind = 3;
+
+    // The revision the console built this change on. Zero means it believes the record is new. A
+    // change built on a revision that is no longer current is refused rather than applied over
+    // what somebody else wrote in the meantime.
+    int64 base_revision = 4;
+
+    bool deleted      = 5;
+    int64 client_time = 6;
+    bytes payload     = 7;
+}
+
+message BookPushRequest
+{
+    int64 request_id = 1;
+    string book_guid = 2;
+
+    // Makes a repeat harmless. A console whose connection dropped before the answer arrived does
+    // not know whether the batch was applied; sending it again with the same id returns what the
+    // first attempt returned and writes nothing.
+    string op_id = 3;
+
+    repeated BookChangeData change = 4;
+}
+
+message BookChangeResult
+{
+    string guid               = 1;
+    BookChangeStatus status   = 2;
+    string reason             = 3;
+    BookEntryData current     = 4; // Filled for CONFLICT.
+}
+
+message BookPushResult
+{
+    int64 request_id         = 1;
+    BookErrorCode error_code = 2;
+    string book_guid         = 3;
+    string op_id             = 4;
+    int64 revision           = 5;
+    repeated BookChangeResult result = 6;
+}
+
+// Sent to every other console with the book open when somebody changes something. It carries no
+// content: the console asks for what it does not have, which keeps one message enough no matter
+// how much changed.
+message BookChanged
+{
+    string book_guid = 1;
+    int64 revision   = 2;
+}
+
+message RouterToBookClient
+{
+    BookList book_list              = 1;
+    BookPull book_pull              = 2;
+    BookPushResult book_push_result = 3;
+    BookChanged book_changed        = 4;
+}
+
+message BookClientToRouter
+{
+    BookListRequest book_list_request = 1;
+    BookPullRequest book_pull_request = 2;
+    BookPushRequest book_push_request = 3;
+}

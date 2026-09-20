@@ -46,6 +46,12 @@ public:
     bool start();
 
     std::unique_ptr<proto::SessionList> sessionList() const;
+
+    // Tells every client session but |origin_session_id| that the shared book moved on. The
+    // message carries no content: a console asks for what it does not have, so one notification is
+    // enough however much changed.
+    void onBookChanged(const std::string& book_guid, int64_t revision,
+                       Session::SessionId origin_session_id);
     bool stopSession(Session::SessionId session_id);
     void onHostSessionWithId(SessionHost* session);
 

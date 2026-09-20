@@ -65,6 +65,8 @@ endif()
 # cannot be linked into a test, and keeping this apart from the router keeps merges with upstream
 # mechanical. It depends on sqlite and base, not on the sessions or the server.
 list(APPEND SOURCE_ROUTER_BOOK
+    book/book_service.cc
+    book/book_service.h
     book/book_store.cc
     book/book_store.h)
 
@@ -74,6 +76,8 @@ list(APPEND SOURCE_ROUTER_BOOK_TESTS
 add_library(aspia_router_book STATIC ${SOURCE_ROUTER_BOOK})
 target_link_libraries(aspia_router_book
     aspia_base
+    aspia_proto
+    ${Protobuf_LITE_LIBRARIES}
     unofficial::sqlite3::sqlite3)
 
 add_executable(aspia_router_tests ${SOURCE_ROUTER_BOOK_TESTS})

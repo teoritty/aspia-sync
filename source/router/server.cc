@@ -198,6 +198,24 @@ bool Server::start()
 }
 
 //--------------------------------------------------------------------------------------------------
+void Server::onBookChanged(const std::string& book_guid, int64_t revision,
+                           Session::SessionId origin_session_id)
+{
+    for (const auto& session : sessions_)
+    {
+        if (session->sessionType() != proto::ROUTER_SESSION_CLIENT)
+            continue;
+
+        // The console that made the change already has the answer to its own request; telling it
+        // again would only make it ask for what it just sent.
+        if (session->sessionId() == origin_session_id)
+            continue;
+
+        static_cast<SessionClient*>(session.get())->onBookChanged(book_guid, revision);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 std::unique_ptr<proto::SessionList> Server::sessionList() const
 {
     std::unique_ptr<proto::SessionList> result = std::make_unique<proto::SessionList>();

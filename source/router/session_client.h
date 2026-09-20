@@ -22,8 +22,16 @@
 #include "proto/router_peer.pb.h"
 #include "router/session.h"
 
+#include <memory>
+
+namespace proto {
+class BookClientToRouter;
+} // namespace proto
+
 namespace router {
 
+class BookService;
+class BookStore;
 class ServerProxy;
 class SharedKeyPool;
 
@@ -33,15 +41,30 @@ public:
     SessionClient();
     ~SessionClient() final;
 
+    // Tells this console that the shared book moved on. Called by the server for every client
+    // session but the one that made the change.
+    void onBookChanged(const std::string& book_guid, int64_t revision);
+
 protected:
     // Session implementation.
     void onSessionReady() final;
     void onSessionMessageReceived(uint8_t channel_id, const base::ByteArray& buffer) final;
     void onSessionMessageWritten(uint8_t channel_id, size_t pending) final;
 
+    // This is the one session type the address book is served to.
+    void onBookMessageReceived(const base::ByteArray& buffer) final;
+
 private:
     void readConnectionRequest(const proto::ConnectionRequest& request);
     void readCheckHostStatus(const proto::CheckHostStatus& check_host_status);
+    void readBookMessage(const proto::BookClientToRouter& message);
+
+    // Opened on the first book request rather than at the start of the session: most sessions
+    // never ask about the book, and opening a database for them would be work done for nothing.
+    bool ensureBookService();
+
+    std::unique_ptr<BookStore> book_store_;
+    std::unique_ptr<BookService> book_service_;
 
     DISALLOW_COPY_AND_ASSIGN(SessionClient);
 };

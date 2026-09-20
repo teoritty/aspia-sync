@@ -18,6 +18,11 @@
 
 #include "router/session_client.h"
 
+#include "proto/router_book.pb.h"
+#include "router/book/book_service.h"
+#include "router/book/book_store.h"
+#include "router/database_sqlite.h"
+
 #include "base/logging.h"
 #include "base/crypto/random.h"
 #include "base/strings/unicode.h"
@@ -75,6 +80,89 @@ void SessionClient::onSessionMessageReceived(uint8_t /* channel_id */, const bas
 void SessionClient::onSessionMessageWritten(uint8_t /* channel_id */, size_t /* pending */)
 {
     // Nothing
+}
+
+//--------------------------------------------------------------------------------------------------
+bool SessionClient::ensureBookService()
+{
+    if (book_service_)
+        return true;
+
+    book_store_ = BookStore::open(DatabaseSqlite::filePath());
+    if (!book_store_)
+    {
+        LOG(LS_ERROR) << "Unable to open the address book store";
+        return false;
+    }
+
+    book_service_ = std::make_unique<BookService>(book_store_.get());
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+void SessionClient::onBookMessageReceived(const base::ByteArray& buffer)
+{
+    proto::BookClientToRouter message;
+    if (!base::parse(buffer, &message))
+    {
+        LOG(LS_ERROR) << "Could not read address book message from client";
+        return;
+    }
+
+    readBookMessage(message);
+}
+
+//--------------------------------------------------------------------------------------------------
+void SessionClient::readBookMessage(const proto::BookClientToRouter& message)
+{
+    if (!ensureBookService())
+        return;
+
+    proto::RouterToBookClient reply;
+
+    if (message.has_book_list_request())
+    {
+        book_service_->handleListRequest(message.book_list_request(), reply.mutable_book_list());
+    }
+    else if (message.has_book_pull_request())
+    {
+        book_service_->handlePullRequest(message.book_pull_request(), reply.mutable_book_pull());
+    }
+    else if (message.has_book_push_request())
+    {
+        // The department shares one router account, so the account cannot say who made a change.
+        // The computer the session came from can, and that is what is recorded against the record.
+        book_service_->handlePushRequest(message.book_push_request(), computerName(),
+                                         reply.mutable_book_push_result());
+
+        const proto::BookPushResult& result = reply.book_push_result();
+        if (result.error_code() == proto::BOOK_ERROR_CODE_OK)
+        {
+            // Everyone else with the book open is told that something moved, and asks for what it
+            // does not have. The message carries no content, so one of them is enough however much
+            // changed.
+            server().onBookChanged(result.book_guid(), result.revision(), sessionId());
+        }
+    }
+    else
+    {
+        LOG(LS_ERROR) << "Unhandled address book message from client";
+        return;
+    }
+
+    sendMessage(proto::ROUTER_CHANNEL_ID_BOOK, reply);
+}
+
+//--------------------------------------------------------------------------------------------------
+void SessionClient::onBookChanged(const std::string& book_guid, int64_t revision)
+{
+    proto::RouterToBookClient message;
+
+    proto::BookChanged* changed = message.mutable_book_changed();
+    changed->set_book_guid(book_guid);
+    changed->set_revision(revision);
+
+    sendMessage(proto::ROUTER_CHANNEL_ID_BOOK, message);
 }
 
 //--------------------------------------------------------------------------------------------------

@@ -186,10 +186,30 @@ void Session::onTcpMessageReceived(uint8_t channel_id, const base::ByteArray& bu
     {
         onSessionMessageReceived(channel_id, buffer);
     }
+    else if (channel_id == proto::ROUTER_CHANNEL_ID_BOOK)
+    {
+        onBookMessageReceived(buffer);
+    }
     else
     {
         LOG(LS_ERROR) << "Unhandled incoming message from channel: " << channel_id;
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+void Session::onBookMessageReceived(const base::ByteArray& /* buffer */)
+{
+    // Whatever this session is, it is not one the address book is served to. Saying so in the log
+    // matters: a host asking for the book is not a mistake in the protocol, it is a machine at a
+    // customer's site that has been taken over.
+    LOG(LS_ERROR) << "Address book message on a session that does not serve it (type "
+                  << static_cast<int>(sessionType()) << ") from " << address();
+
+    // The session is left in place but stops being read: there is no public way for a session to
+    // tear down its own connection, and refusing to serve is the property that matters. Pausing
+    // also keeps a peer that has been taken over from filling the log with these.
+    if (channel_)
+        channel_->pause();
 }
 
 //--------------------------------------------------------------------------------------------------

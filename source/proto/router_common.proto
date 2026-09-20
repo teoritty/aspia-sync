@@ -25,6 +25,10 @@ package proto;
 enum RouterChannelId
 {
     ROUTER_CHANNEL_ID_SESSION = 0;
+
+    // Synchronization of the shared address book. Served only to client sessions - see
+    // router_book.proto and Session::onBookMessageReceived.
+    ROUTER_CHANNEL_ID_BOOK    = 1;
 }
 
 enum RouterSession

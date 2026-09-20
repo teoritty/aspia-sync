@@ -80,6 +80,15 @@ protected:
     virtual void onSessionMessageReceived(uint8_t channel_id, const base::ByteArray& buffer) = 0;
     virtual void onSessionMessageWritten(uint8_t channel_id, size_t pending) = 0;
 
+    // Address book synchronization. The default refuses, and only the client session overrides it.
+    //
+    // Hosts and relays authenticate with the router as well, and a host stands on a machine at a
+    // customer's site that nobody here controls. The address book holds the credentials of every
+    // such machine, so it must not be reachable from one. Making the refusal the default means a
+    // session that says nothing about the book cannot serve it, rather than being allowed to as
+    // long as somebody remembers to add a check.
+    virtual void onBookMessageReceived(const base::ByteArray& buffer);
+
     // base::TcpChannel::Listener implementation.
     void onTcpConnected() final;
     void onTcpDisconnected(base::NetworkChannel::ErrorCode error_code) final;
