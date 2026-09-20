@@ -95,6 +95,13 @@ public:
 
     SyncStatus syncStatus() const;
 
+    // Records waiting for a person to choose between two versions.
+    std::vector<std::string> syncConflicts() const;
+
+    // The name a record is shown under, so a list of guids can be made readable. Falls back to the
+    // guid itself for a record that is no longer in the book.
+    QString computerNameByGuid(const QString& guid) const;
+
     void retranslateUi();
 
 public slots:

@@ -28,6 +28,7 @@
 #include "client/online_checker/online_checker.h"
 #include "console/address_book_dialog.h"
 #include "console/book/entry_guid.h"
+#include "console/book/flat_book.h"
 #include "console/book/sync_key.h"
 #include "console/computer_dialog.h"
 #include "console/computer_factory.h"
@@ -1220,6 +1221,39 @@ AddressBookTab::SyncStatus AddressBookTab::syncStatus() const
     }
 
     return status;
+}
+
+//--------------------------------------------------------------------------------------------------
+std::vector<std::string> AddressBookTab::syncConflicts() const
+{
+    if (!book_sync_)
+        return std::vector<std::string>();
+
+    return book_sync_->conflicts();
+}
+
+//--------------------------------------------------------------------------------------------------
+QString AddressBookTab::computerNameByGuid(const QString& guid) const
+{
+    const std::string needle = guid.toStdString();
+
+    for (const FlatEntry& entry : flattenBook(data_.root_group()))
+    {
+        if (entry.guid != needle)
+            continue;
+
+        proto::address_book::Computer computer;
+        if (computer.ParseFromString(entry.payload) && !computer.name().empty())
+            return QString::fromStdString(computer.name());
+
+        proto::address_book::ComputerGroup group;
+        if (group.ParseFromString(entry.payload) && !group.name().empty())
+            return QString::fromStdString(group.name());
+
+        break;
+    }
+
+    return guid;
 }
 
 //--------------------------------------------------------------------------------------------------

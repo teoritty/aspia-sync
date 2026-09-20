@@ -85,6 +85,7 @@
      <string>&amp;Edit</string>
     </property>
     <addaction name="action_address_book_properties"/>
+    <addaction name="action_sync"/>
     <addaction name="separator"/>
     <addaction name="action_add_computer_group"/>
     <addaction name="action_modify_computer_group"/>
@@ -402,6 +403,17 @@
    </property>
    <property name="text">
     <string>&amp;About</string>
+   </property>
+  </action>
+  <action name="action_sync">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Synchronization...</string>
+   </property>
+   <property name="toolTip">
+    <string>Share this address book with your department through the router</string>
    </property>
   </action>
   <action name="action_address_book_properties">

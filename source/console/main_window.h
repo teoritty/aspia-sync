@@ -66,6 +66,7 @@ private slots:
     void onClose();
     void onCloseAll();
     void onAddressBookProperties();
+    void onSync();
     void onAddComputer();
     void onCopyComputer();
     void onModifyComputer();

@@ -32,6 +32,8 @@
 #include "console/fast_connect_dialog.h"
 #include "console/import_export_util.h"
 #include "console/mru_action.h"
+#include "console/sync_dialog.h"
+#include "console/sync_wizard.h"
 #include "console/update_settings_dialog.h"
 #include "common/ui/update_dialog.h"
 #include "qt_base/qt_logging.h"
@@ -40,6 +42,7 @@
 #include <QCloseEvent>
 #include <QDesktopServices>
 #include <QFileDialog>
+#include <QFile>
 #include <QMessageBox>
 #include <QSystemTrayIcon>
 
@@ -96,6 +99,8 @@ MainWindow::MainWindow(const QString& file_path)
 
     connect(ui.action_address_book_properties, &QAction::triggered,
             this, &MainWindow::onAddressBookProperties);
+
+    connect(ui.action_sync, &QAction::triggered, this, &MainWindow::onSync);
 
     connect(ui.action_add_computer, &QAction::triggered, this, &MainWindow::onAddComputer);
     connect(ui.action_copy_computer, &QAction::triggered, this, &MainWindow::onCopyComputer);
@@ -436,6 +441,91 @@ void MainWindow::onAddressBookProperties()
     else
     {
         LOG(LS_ERROR) << "No active tab";
+    }
+}
+
+namespace {
+
+//--------------------------------------------------------------------------------------------------
+// A copy of the address book before it is joined to a shared one. Joining is the one step here
+// that cannot be undone by switching synchronization off again, so there has to be something to
+// go back to.
+bool backupBeforeSync(const QString& file_path)
+{
+    if (file_path.isEmpty())
+        return false;
+
+    const QString backup_path = file_path + QLatin1String(".before-sync");
+
+    // An older copy is not overwritten: it is from the last time somebody did this, and that is
+    // exactly the state worth keeping.
+    if (QFile::exists(backup_path))
+        return true;
+
+    return QFile::copy(file_path, backup_path);
+}
+
+} // namespace
+
+//--------------------------------------------------------------------------------------------------
+void MainWindow::onSync()
+{
+    LOG(LS_INFO) << "[ACTION] Address book synchronization";
+
+    AddressBookTab* tab = currentAddressBookTab();
+    if (!tab)
+    {
+        LOG(LS_ERROR) << "No active tab";
+        return;
+    }
+
+    if (tab->isSyncEnabled())
+    {
+        SyncDialog dialog(tab, this);
+        dialog.exec();
+        return;
+    }
+
+    // Joining needs somewhere to join to, and that is the router this book already uses. A book
+    // without one has nothing to synchronize through.
+    std::optional<client::RouterConfig> router = tab->routerConfig();
+    if (!router.has_value())
+    {
+        QMessageBox::warning(
+            this,
+            tr("Confirmation"),
+            tr("This address book has no router configured. Synchronization goes through a "
+               "router, so one has to be set up in the address book properties first."),
+            QMessageBox::Ok);
+        return;
+    }
+
+    // The book has to be saved before it is joined: the copy made below is a copy of the file, and
+    // a file that does not have the latest edits would be a poor thing to fall back on.
+    if (tab->isChanged() && !tab->save())
+        return;
+
+    SyncWizard wizard(router.value(), *tab->rootComputerGroup(), this);
+    if (wizard.exec() != QDialog::Accepted)
+        return;
+
+    if (!backupBeforeSync(tab->filePath()))
+    {
+        QMessageBox::warning(
+            this,
+            tr("Confirmation"),
+            tr("A copy of the address book could not be made, so nothing was changed."),
+            QMessageBox::Ok);
+        return;
+    }
+
+    if (!tab->enableSync(wizard.bookGuid(), wizard.salt(), wizard.verifier(), wizard.passphrase()))
+    {
+        QMessageBox::warning(
+            this,
+            tr("Confirmation"),
+            tr("Synchronization could not be turned on."),
+            QMessageBox::Ok);
     }
 }
 
@@ -983,6 +1073,7 @@ void MainWindow::onCloseTab(int index)
         ui.action_save_as->setEnabled(false);
         ui.action_save_all->setEnabled(false);
         ui.action_address_book_properties->setEnabled(false);
+        ui.action_sync->setEnabled(false);
     }
 
     if (!hasUnpinnedTabs())
@@ -1599,6 +1690,7 @@ void MainWindow::addAddressBookTab(AddressBookTab* new_tab)
     ui.action_close_all->setEnabled(has_unpinned_tabs);
 
     ui.action_address_book_properties->setEnabled(true);
+    ui.action_sync->setEnabled(true);
     ui.action_save_as->setEnabled(true);
 
     ui.tab_widget->setCurrentIndex(index);
