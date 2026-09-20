@@ -124,6 +124,8 @@ list(APPEND SOURCE_CONSOLE_BOOK
     book/entry_guid.h
     book/flat_book.cc
     book/flat_book.h
+    book/local_changes.cc
+    book/local_changes.h
     book/merge.cc
     book/merge.h
     book/sync_engine.cc
@@ -134,6 +136,7 @@ list(APPEND SOURCE_CONSOLE_BOOK
 list(APPEND SOURCE_CONSOLE_BOOK_TESTS
     book/entry_guid_unittest.cc
     book/flat_book_unittest.cc
+    book/local_changes_unittest.cc
     book/merge_unittest.cc
     book/sync_engine_unittest.cc
     book/sync_key_unittest.cc)

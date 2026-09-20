@@ -280,6 +280,7 @@ SyncEngine::PullOutcome SyncEngine::applyPull(const proto::BookPull& page, Data*
             SyncEntryState* new_state = stateFor(data, remote.guid());
             new_state->set_revision(remote.revision());
             new_state->set_base_payload(payload->second);
+            new_state->set_base_parent_guid(remote.parent_guid());
             new_state->set_dirty(false);
 
             ++outcome.applied;
@@ -298,6 +299,7 @@ SyncEngine::PullOutcome SyncEngine::applyPull(const proto::BookPull& page, Data*
             SyncEntryState* existing = stateFor(data, remote.guid());
             existing->set_revision(remote.revision());
             existing->set_base_payload(payload->second);
+            existing->set_base_parent_guid(remote.parent_guid());
             existing->set_dirty(false);
 
             ++outcome.applied;
@@ -326,6 +328,7 @@ SyncEngine::PullOutcome SyncEngine::applyPull(const proto::BookPull& page, Data*
         SyncEntryState* existing = stateFor(data, remote.guid());
         existing->set_revision(remote.revision());
         existing->set_base_payload(payload->second);
+        existing->set_base_parent_guid(remote.parent_guid());
 
         // Still pending: the merged version is not what the router has yet.
         existing->set_dirty(true);
@@ -459,7 +462,10 @@ SyncEngine::PushOutcome SyncEngine::applyPushResult(const proto::BookPushResult&
 
                 auto it = index.find(entry.guid());
                 if (it != index.end())
+                {
                     state->set_base_payload(entries[it->second].payload);
+                    state->set_base_parent_guid(entries[it->second].parent_guid);
+                }
 
                 state->set_revision(result.revision());
                 state->set_dirty(false);
@@ -502,6 +508,7 @@ SyncEngine::PushOutcome SyncEngine::applyPushResult(const proto::BookPushResult&
                 // stale and goes through without another round.
                 state->set_revision(entry.current().revision());
                 state->set_base_payload(remote);
+                state->set_base_parent_guid(entry.current().parent_guid());
                 state->set_dirty(true);
 
                 ++outcome.merged;

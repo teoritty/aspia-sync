@@ -169,6 +169,11 @@ message SyncEntryState
     // even when only one of them touched anything.
     bytes base_payload = 3;
 
+    // The group the record was in when the base above was taken. Where a record sits is not part
+    // of the record itself, so without this a move would be invisible to the comparison that finds
+    // what has changed here.
+    string base_parent_guid = 6;
+
     // The record was changed here and the change has not reached the router yet.
     bool dirty = 4;
 
