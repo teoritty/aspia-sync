@@ -115,6 +115,33 @@ if (WIN32)
         wtsapi32)
 endif()
 
+# The model of the address book - identity of its records, and later on everything the
+# synchronization needs. It is a library of its own for two reasons: the console executable cannot
+# be linked into a test, and keeping this code apart from the console keeps merges with upstream
+# mechanical. It depends on the protocol and on base, never on Qt or on the console.
+list(APPEND SOURCE_CONSOLE_BOOK
+    book/entry_guid.cc
+    book/entry_guid.h)
+
+list(APPEND SOURCE_CONSOLE_BOOK_TESTS
+    book/entry_guid_unittest.cc)
+
+add_library(aspia_console_book STATIC ${SOURCE_CONSOLE_BOOK})
+target_link_libraries(aspia_console_book
+    aspia_base
+    aspia_proto
+    ${THIRD_PARTY_LIBS})
+
+add_executable(aspia_console_tests ${SOURCE_CONSOLE_BOOK_TESTS})
+target_link_libraries(aspia_console_tests PRIVATE
+    aspia_console_book
+    aspia_base
+    aspia_proto
+    GTest::gtest
+    GTest::gtest_main
+    ${THIRD_PARTY_LIBS})
+add_test(NAME aspia_console_tests COMMAND aspia_console_tests)
+
 add_executable(aspia_console MACOSX_BUNDLE
     ${aspia_console_ICON}
     ${SOURCE_CONSOLE}
@@ -128,6 +155,7 @@ endif()
 target_link_libraries(aspia_console
     aspia_base
     aspia_client_core
+    aspia_console_book
     aspia_common
     aspia_proto
     aspia_qt_base

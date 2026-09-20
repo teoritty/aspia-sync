@@ -21,5 +21,7 @@ echo ============================== BUILD ==================================
 cmake --build "%BUILD_DIR%" --config %CONFIG% || exit /b 1
 
 echo ============================== TESTS ==================================
-"%BUILD_DIR%\%CONFIG%\aspia_base_tests.exe"
+rem ctest runs every target registered with add_test, so a new test executable
+rem is picked up by adding it there and nothing has to change here.
+ctest --test-dir "%BUILD_DIR%" --build-config %CONFIG% --output-on-failure
 exit /b %ERRORLEVEL%

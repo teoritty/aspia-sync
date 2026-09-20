@@ -27,6 +27,7 @@
 #include "base/strings/unicode.h"
 #include "client/online_checker/online_checker.h"
 #include "console/address_book_dialog.h"
+#include "console/book/entry_guid.h"
 #include "console/computer_dialog.h"
 #include "console/computer_factory.h"
 #include "console/computer_group_dialog.h"
@@ -292,11 +293,22 @@ AddressBookTab* AddressBookTab::openFromFile(const QString& file_path, QWidget* 
 
     base::memZero(&decrypted_data);
 
-    return new AddressBookTab(file_path,
-                              std::move(address_book_file),
-                              std::move(address_book_data),
-                              std::move(key),
-                              parent);
+    // Books written before records had an identity carry no guid. Every record gets one here, once,
+    // and the book is marked as changed so that they reach the file: guids generated anew at every
+    // open would be no identity at all.
+    const size_t guids_assigned = ensureEntryGuids(address_book_data.mutable_root_group());
+    if (guids_assigned)
+        LOG(LS_INFO) << "Assigned identity to " << guids_assigned << " address book entries";
+
+    AddressBookTab* tab = new AddressBookTab(file_path,
+                                             std::move(address_book_file),
+                                             std::move(address_book_data),
+                                             std::move(key),
+                                             parent);
+    if (guids_assigned)
+        tab->setChanged(true);
+
+    return tab;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1232,6 +1244,11 @@ bool AddressBookTab::saveToFile(const QString& file_path)
         LOG(LS_INFO) << "Selected file path: " << path.toStdString();
         settings.setLastDirectory(QFileInfo(path).absolutePath());
     }
+
+    // Records created since the last save - by the dialogs, by an import - have no guid yet. This
+    // is the one place every one of them passes through, so giving them an identity here covers
+    // all of them at once instead of every place that can add a record.
+    ensureEntryGuids(data_.mutable_root_group());
 
     base::ByteArray buffer = base::serialize(file_);
 
