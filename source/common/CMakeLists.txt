@@ -65,24 +65,6 @@ if (WIN32)
         file_platform_util_win.cc)
 endif()
 
-if (LINUX)
-    list(APPEND SOURCE_COMMON
-        clipboard_x11.cc
-        clipboard_x11.h
-        file_platform_util_linux.cc)
-endif()
-
-if (APPLE)
-    list(APPEND SOURCE_COMMON
-        clipboard_mac.mm
-        clipboard_mac.h
-        file_platform_util_mac.mm)
-endif()
-
-if (UNIX)
-    list(APPEND SOURCE_COMMON file_enumerator_fs.cc)
-endif()
-
 list(APPEND SOURCE_COMMON_UI
     ui/about_dialog.cc
     ui/about_dialog.h

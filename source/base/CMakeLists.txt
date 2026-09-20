@@ -86,26 +86,6 @@ if (WIN32)
         sys_info_win.cc)
 endif()
 
-if (LINUX)
-    list(APPEND SOURCE_BASE
-        applications_reader_linux.cc
-        license_reader_linux.cc
-        power_controller_linux.cc
-        smbios_reader_linux.cc
-        service_posix.cc
-        sys_info_linux.cc)
-endif()
-
-if (APPLE)
-    list(APPEND SOURCE_BASE
-        applications_reader_mac.cc
-        license_reader_mac.cc
-        power_controller_mac.mm
-        smbios_reader_mac.mm
-        service_posix.cc
-        sys_info_mac.mm)
-endif()
-
 list(APPEND SOURCE_BASE_TESTS
     base64_unittest.cc
     bitset_unittest.cc
@@ -147,28 +127,6 @@ if (WIN32)
         audio/win/default_audio_device_change_detector.h
         audio/win/scoped_mmcss_registration.cc
         audio/win/scoped_mmcss_registration.h)
-endif()
-
-if (LINUX)
-    list(APPEND SOURCE_BASE_AUDIO
-        audio/audio_capturer_linux.cc
-        audio/audio_capturer_linux.h
-        audio/audio_output_pulse.cc
-        audio/audio_output_pulse.h)
-
-    list(APPEND SOURCE_BASE_AUDIO_LINUX
-        audio/linux/audio_pipe_reader.cc
-        audio/linux/audio_pipe_reader.h
-        audio/linux/late_binding_symbol_table.cc
-        audio/linux/late_binding_symbol_table.h
-        audio/linux/pulseaudio_symbol_table.cc
-        audio/linux/pulseaudio_symbol_table.h)
-endif()
-
-if (APPLE)
-    list(APPEND SOURCE_BASE_AUDIO
-        audio/audio_output_mac.cc
-        audio/audio_output_mac.h)
 endif()
 
 list(APPEND SOURCE_BASE_CODEC
@@ -267,14 +225,6 @@ if (WIN32)
     list(APPEND SOURCE_BASE_CRYPTO crypto/os_crypt_win.cc)
 endif()
 
-if (APPLE)
-    list(APPEND SOURCE_BASE_CRYPTO crypto/os_crypt_mac.mm)
-endif()
-
-if (LINUX)
-    list(APPEND SOURCE_BASE_CRYPTO crypto/os_crypt_linux.cc)
-endif()
-
 list(APPEND SOURCE_BASE_CRYPTO_TESTS
     crypto/big_num_unittest.cc
     crypto/cryptor_unittest.cc
@@ -344,44 +294,12 @@ if (WIN32)
         desktop/screen_capturer_mirror.h)
 endif()
 
-if (LINUX)
-    list(APPEND SOURCE_BASE_DESKTOP
-        desktop/desktop_environment_linux.cc
-        desktop/desktop_environment_linux.h
-        desktop/desktop_resizer_x11.cc
-        desktop/desktop_resizer_x11.h
-        desktop/screen_capturer_x11.cc
-        desktop/screen_capturer_x11.h)
-endif()
-
-if (APPLE)
-    list(APPEND SOURCE_BASE_DESKTOP
-        desktop/desktop_environment_mac.mm
-        desktop/desktop_environment_mac.h
-        desktop/screen_capturer_mac.mm
-        desktop/screen_capturer_mac.h)
-endif()
-
 list(APPEND SOURCE_BASE_DESKTOP_TESTS
     desktop/diff_block_32bpp_c_unittest.cc
     desktop/diff_block_32bpp_sse2_unittest.cc
     desktop/frame_unittest.cc
     desktop/geometry_unittest.cc
     desktop/region_unittest.cc)
-
-if (APPLE)
-    list(APPEND SOURCE_BASE_DESKTOP_MAC
-        desktop/mac/desktop_configuration_monitor.cc
-        desktop/mac/desktop_configuration_monitor.h
-        desktop/mac/desktop_configuration.mm
-        desktop/mac/desktop_configuration.h
-        desktop/mac/frame_cgimage.mm
-        desktop/mac/frame_cgimage.h
-        desktop/mac/frame_iosurface.mm
-        desktop/mac/frame_iosurface.h
-        desktop/mac/frame_provider.mm
-        desktop/mac/frame_provider.h)
-endif()
 
 if (WIN32)
     list(APPEND SOURCE_BASE_DESKTOP_WIN
@@ -427,18 +345,6 @@ if (WIN32)
         desktop/win/cursor_unittest_resources.rc)
 endif()
 
-if (LINUX)
-    list(APPEND SOURCE_BASE_DESKTOP_X11
-        desktop/x11/shared_x_display.cc
-        desktop/x11/shared_x_display.h
-        desktop/x11/x_atom_cache.cc
-        desktop/x11/x_atom_cache.h
-        desktop/x11/x_error_trap.cc
-        desktop/x11/x_error_trap.h
-        desktop/x11/x_server_pixel_buffer.cc
-        desktop/x11/x_server_pixel_buffer.h)
-endif()
-
 list(APPEND SOURCE_BASE_FILES
     files/base_paths.cc
     files/base_paths.h
@@ -456,23 +362,6 @@ if (WIN32)
         files/file_path_watcher_win.cc)
 endif()
 
-if (LINUX)
-    list(APPEND SOURCE_BASE_FILES
-        files/file_path_watcher_linux.cc)
-endif()
-
-if (APPLE)
-    list(APPEND SOURCE_BASE_FILES
-        files/base_paths_mac.mm
-        files/file_path_watcher_mac.cc)
-endif()
-
-if (UNIX)
-    list(APPEND SOURCE_BASE_FILES
-        files/file_descriptor_watcher_posix.cc
-        files/file_descriptor_watcher_posix.h)
-endif()
-
 list(APPEND SOURCE_BASE_IPC
     ipc/ipc_channel.cc
     ipc/ipc_channel.h
@@ -486,15 +375,6 @@ list(APPEND SOURCE_BASE_IPC
     ipc/shared_memory_factory.h
     ipc/shared_memory_factory_proxy.cc
     ipc/shared_memory_factory_proxy.h)
-
-if (APPLE)
-    list(APPEND SOURCE_BASE_MAC
-        mac/app_nap_blocker.mm
-        mac/app_nap_blocker.h
-        mac/nsstring_conversions.mm
-        mac/nsstring_conversions.h
-        mac/scoped_cftyperef.h)
-endif()
 
 list(APPEND SOURCE_BASE_MEMORY
     memory/aligned_memory.cc
@@ -598,11 +478,6 @@ list(APPEND SOURCE_BASE_PEER
     peer/user_list.h
     peer/user_list_base.h)
 
-if (UNIX)
-    list(APPEND SOURCE_BASE_POSIX
-        posix/eintr_wrapper.h)
-endif()
-
 list(APPEND SOURCE_BASE_SETTINGS
     settings/json_settings.cc
     settings/json_settings.h
@@ -629,11 +504,6 @@ list(APPEND SOURCE_BASE_STRINGS
 if (WIN32)
     list(APPEND SOURCE_BASE_STRINGS
         strings/string_util_win.cc)
-endif()
-
-if (UNIX)
-    list(APPEND SOURCE_BASE_STRINGS
-        strings/string_util_icu.cc)
 endif()
 
 list(APPEND SOURCE_BASE_STRINGS_TESTS
@@ -737,12 +607,6 @@ if (WIN32)
         win/scoped_object_unittest.cc)
 endif()
 
-if (LINUX)
-    list(APPEND SOURCE_BASE_X11
-        x11/x_server_clipboard.cc
-        x11/x_server_clipboard.h)
-endif()
-
 source_group("" FILES ${SOURCE_BASE} ${SOURCE_BASE_TESTS})
 source_group(audio FILES ${SOURCE_BASE_AUDIO})
 source_group(codec FILES ${SOURCE_BASE_CODEC})
@@ -763,18 +627,6 @@ if (WIN32)
     source_group(desktop\\win FILES ${SOURCE_BASE_DESKTOP_WIN} ${SOURCE_BASE_DESKTOP_WIN_TESTS})
     source_group(posix FILES ${SOURCE_BASE_POSIX})
     source_group(win FILES ${SOURCE_BASE_WIN} ${SOURCE_BASE_WIN_TESTS})
-endif()
-
-if (LINUX)
-    source_group(audio\\linux FILES ${SOURCE_BASE_AUDIO_LINUX})
-    source_group(desktop\\x11 FILES ${SOURCE_BASE_DESKTOP_X11})
-    source_group(posix FILES ${SOURCE_BASE_POSIX})
-    source_group(x11 FILES ${SOURCE_BASE_X11})
-endif()
-
-if (APPLE)
-    source_group(mac FILES ${SOURCE_BASE_MAC})
-    source_group(desktop\\mac FILES ${SOURCE_BASE_DESKTOP_MAC})
 endif()
 
 add_library(aspia_base STATIC
@@ -802,22 +654,10 @@ add_library(aspia_base STATIC
     ${SOURCE_BASE_WIN}
     ${SOURCE_BASE_X11})
 
-if (LINUX)
-    set(BASE_PLATFORM_LIBS ${XFIXES_LIB} stdc++fs ICU::uc ICU::dt xdg_user_dirs)
-endif()
-
 target_link_libraries(aspia_base PRIVATE aspia_proto ${THIRD_PARTY_LIBS} ${BASE_PLATFORM_LIBS})
 
 if (WIN32)
     set(BASE_TESTS_PLATFORM_LIBS crypt32 iphlpapi ws2_32)
-endif()
-
-if (LINUX)
-    set(BASE_TESTS_PLATFORM_LIBS stdc++fs ICU::uc ICU::dt)
-endif()
-
-if (APPLE)
-    set(BASE_TESTS_PLATFORM_LIBS ${FOUNDATION_LIB} ICU::uc ICU::dt)
 endif()
 
 add_executable(aspia_base_tests

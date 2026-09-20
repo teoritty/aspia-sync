@@ -20,10 +20,3 @@ add_subdirectory(libwebm)
 add_subdirectory(modp_b64)
 add_subdirectory(x11region)
 
-if (APPLE)
-    add_subdirectory(portaudio)
-endif()
-
-if (LINUX)
-    add_subdirectory(xdg_user_dirs)
-endif()

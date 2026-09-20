@@ -343,18 +343,6 @@ if (WIN32)
         Qt5::WinMain)
 endif()
 
-if (LINUX)
-    set(CLIENT_PLATFORM_LIBS stdc++fs ${XFIXES_LIB} ICU::uc ICU::dt)
-endif()
-
-if (APPLE)
-    set(CLIENT_PLATFORM_LIBS ${COREAUDIO_LIB} ${AUDIOTOOLBOX_LIB} portaudio ICU::uc ICU::dt)
-    set(aspia_client_ICON ${PROJECT_SOURCE_DIR}/source/client/resources/main.icns)
-    set(aspia_client_PLIST ${PROJECT_SOURCE_DIR}/source/client/Info.plist)
-
-    set_source_files_properties(${aspia_client_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-endif()
-
 add_executable(aspia_client MACOSX_BUNDLE ${aspia_client_ICON} client_entry_point.cc client.rc)
 target_link_libraries(aspia_client aspia_client_core ${CLIENT_PLATFORM_LIBS})
 qt5_import_plugins(aspia_client
@@ -368,8 +356,3 @@ if (WIN32)
     set_target_properties(aspia_client PROPERTIES LINK_FLAGS "/MANIFEST:NO")
 endif()
 
-if (APPLE)
-    set_target_properties(aspia_client PROPERTIES OUTPUT_NAME "Aspia Client")
-    set_target_properties(aspia_client PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${aspia_client_PLIST})
-    set_target_properties(aspia_client PROPERTIES MACOSX_BUNDLE_ICONFILE ${aspia_client_ICON})
-endif()

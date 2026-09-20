@@ -98,18 +98,6 @@ if (WIN32)
         task_manager.h)
 endif()
 
-if (LINUX)
-    list(APPEND SOURCE_HOST_CORE
-        input_injector_x11.cc
-        input_injector_x11.h)
-endif()
-
-if (APPLE)
-    list(APPEND SOURCE_HOST_CORE
-        input_injector_mac.mm
-        input_injector_mac.h)
-endif()
-
 list(APPEND SOURCE_HOST_CORE_UI
     ui/application.cc
     ui/application.h
@@ -222,20 +210,6 @@ endif()
 
 if (WIN32)
     set(HOST_PLATFORM_LIBS Qt5::WinMain)
-endif()
-
-if (LINUX)
-    set(HOST_PLATFORM_LIBS
-        stdc++fs
-        ${XFIXES_LIB}
-        ${XDAMAGE_LIB}
-        ${XRANDR_LIB}
-        ${XTST_LIB}
-        ${XI_LIB}
-        ${X11_LIB}
-        ${XEXT_LIB}
-        ICU::uc
-        ICU::dt)
 endif()
 
 # Aspia Host (GUI)

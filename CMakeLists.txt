@@ -39,15 +39,6 @@ add_definitions(-DASPIA_VERSION_MAJOR=${ASPIA_VERSION_MAJOR}
                 -DASPIA_VERSION_MINOR=${ASPIA_VERSION_MINOR}
                 -DASPIA_VERSION_PATCH=${ASPIA_VERSION_PATCH})
 
-if (UNIX AND NOT APPLE)
-    message(STATUS "Linux detected")
-    set(LINUX TRUE)
-endif()
-
-if (APPLE)
-    message(STATUS "MacOSX detected")
-endif()
-
 if (WIN32)
     message(STATUS "Windows detected")
 endif()
@@ -72,41 +63,6 @@ find_package(zstd CONFIG REQUIRED)
 if (WIN32)
     find_package(Qt5WinExtras REQUIRED)
     find_path(WTL_INCLUDE_DIRS "atlapp.h")
-endif()
-
-if (UNIX)
-    find_package(ICU REQUIRED uc dt)
-endif()
-
-if (LINUX)
-    find_library(XFIXES_LIB NAMES libXfixes Xfixes REQUIRED)
-    message(STATUS "XFixes library: ${XFIXES_LIB}")
-
-    find_library(XDAMAGE_LIB NAMES libXdamage Xdamage REQUIRED)
-    message(STATUS "XDamage library: ${XDAMAGE_LIB}")
-
-    find_library(XRANDR_LIB NAMES libXrandr Xrandr REQUIRED)
-    message(STATUS "XRandr library: ${XRANDR_LIB}")
-
-    find_library(XTST_LIB NAMES libXtst Xtst REQUIRED)
-    message(STATUS "XTst library: ${XTST_LIB}")
-
-    find_library(XI_LIB NAMES libXi Xi REQUIRED)
-    message(STATUS "Xi library: ${XI_LIB}")
-
-    find_library(X11_LIB NAMES libX11 X11 REQUIRED)
-    message(STATUS "X11 library: ${X11_LIB}")
-
-    find_library(XEXT_LIB NAMES libXext Xext REQUIRED)
-    message(STATUS "Xext library: ${XEXT_LIB}")
-endif()
-
-if (APPLE)
-    set(CMAKE_OSX_ARCHITECTURES "x86_64")
-    find_library(FOUNDATION_LIB Foundation)
-    find_library(COREAUDIO_LIB CoreAudio)
-    find_library(AUDIOTOOLBOX_LIB AudioToolbox)
-    find_program(CODESIGN_BIN NAMES codesign)
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

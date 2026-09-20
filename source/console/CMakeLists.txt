@@ -115,28 +115,10 @@ if (WIN32)
         wtsapi32)
 endif()
 
-if (APPLE)
-    set(CONSOLE_PLATFORM_LIBS ${COREAUDIO_LIB} ${AUDIOTOOLBOX_LIB} portaudio ICU::uc ICU::dt)
-    set(aspia_console_ICON ${PROJECT_SOURCE_DIR}/source/console/resources/main.icns)
-    set(aspia_console_PLIST ${PROJECT_SOURCE_DIR}/source/console/Info.plist)
-
-    set_source_files_properties(${aspia_console_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-endif()
-
-if (LINUX)
-    set(CONSOLE_PLATFORM_LIBS stdc++fs ${XFIXES_LIB} ICU::uc ICU::dt)
-endif()
-
 add_executable(aspia_console MACOSX_BUNDLE
     ${aspia_console_ICON}
     ${SOURCE_CONSOLE}
     ${SOURCE_CONSOLE_RESOURCES})
-
-if (APPLE)
-    set_target_properties(aspia_console PROPERTIES OUTPUT_NAME "Aspia Console")
-    set_target_properties(aspia_console PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${aspia_console_PLIST})
-    set_target_properties(aspia_console PROPERTIES MACOSX_BUNDLE_ICONFILE ${aspia_console_ICON})
-endif()
 
 if (WIN32)
     set_target_properties(aspia_console PROPERTIES WIN32_EXECUTABLE TRUE)

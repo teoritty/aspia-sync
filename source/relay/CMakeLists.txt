@@ -53,14 +53,6 @@ if (WIN32)
     set(RELAY_PLATFORM_LIBS comsupp crypt32 dbghelp netapi32 version)
 endif()
 
-if (LINUX)
-    set(RELAY_PLATFORM_LIBS stdc++fs ICU::uc ICU::dt)
-endif()
-
-if (APPLE)
-    set(RELAY_PLATFORM_LIBS ${FOUNDATION_LIB} ICU::uc ICU::dt)
-endif()
-
 add_executable(aspia_relay ${SOURCE_RELAY} ${SOURCE_RELAY_WIN})
 
 if (WIN32)

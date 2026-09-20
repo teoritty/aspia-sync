@@ -61,14 +61,6 @@ if (WIN32)
     set(ROUTER_PLATFORM_LIBS comsupp crypt32 dbghelp netapi32 version)
 endif()
 
-if (LINUX)
-    set(ROUTER_PLATFORM_LIBS stdc++fs ICU::uc ICU::dt)
-endif()
-
-if (APPLE)
-    set(ROUTER_PLATFORM_LIBS ${FOUNDATION_LIB} ICU::uc ICU::dt)
-endif()
-
 add_executable(aspia_router ${SOURCE_ROUTER} ${SOURCE_ROUTER_WIN})
 
 if (WIN32)
