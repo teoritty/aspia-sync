@@ -30,10 +30,9 @@ namespace console {
 
 //--------------------------------------------------------------------------------------------------
 BookController::BookController(const client::RouterConfig& router_config,
-                               std::shared_ptr<base::TaskRunner> task_runner)
+                               std::shared_ptr<base::TaskRunner> ui_task_runner)
     : router_config_(router_config),
-      task_runner_(std::move(task_runner)),
-      reconnect_timer_(base::WaitableTimer::Type::SINGLE_SHOT, task_runner_)
+      ui_task_runner_(std::move(ui_task_runner))
 {
     LOG(LS_INFO) << "Ctor";
 }
@@ -54,7 +53,10 @@ void BookController::start(Delegate* delegate)
     stopped_ = false;
     reconnect_seconds_ = kMinReconnectSeconds;
 
-    connectToRouter();
+    // A TcpChannel takes its io context from the loop of the thread it is made on, and the loop of
+    // the window is a Qt one. So the network gets a thread with an asio loop of its own, and
+    // everything that comes back is posted to the thread the delegate lives on.
+    io_thread_.start(base::MessageLoop::Type::ASIO, this);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -64,7 +66,27 @@ void BookController::stop()
     connected_ = false;
     delegate_ = nullptr;
 
-    reconnect_timer_.stop();
+    // Waits for the thread, which unwinds everything made on it in onAfterThreadRunning. The
+    // channel must not outlive the loop it took its io context from.
+    io_thread_.stop();
+}
+
+//--------------------------------------------------------------------------------------------------
+void BookController::onBeforeThreadRunning()
+{
+    io_task_runner_ = io_thread_.taskRunner();
+    DCHECK(io_task_runner_);
+
+    reconnect_timer_ = std::make_unique<base::WaitableTimer>(
+        base::WaitableTimer::Type::SINGLE_SHOT, io_task_runner_);
+
+    connectToRouter();
+}
+
+//--------------------------------------------------------------------------------------------------
+void BookController::onAfterThreadRunning()
+{
+    reconnect_timer_.reset();
     authenticator_.reset();
     channel_.reset();
 }
@@ -91,12 +113,12 @@ void BookController::connectToRouter()
 //--------------------------------------------------------------------------------------------------
 void BookController::scheduleReconnect()
 {
-    if (stopped_)
+    if (stopped_ || !reconnect_timer_)
         return;
 
     LOG(LS_INFO) << "Reconnecting in " << reconnect_seconds_ << " seconds";
 
-    reconnect_timer_.start(std::chrono::seconds(reconnect_seconds_), [this]()
+    reconnect_timer_->start(std::chrono::seconds(reconnect_seconds_), [this]()
     {
         connectToRouter();
     });
@@ -114,7 +136,7 @@ void BookController::onTcpConnected()
     channel_->setKeepAlive(true);
     channel_->setNoDelay(true);
 
-    authenticator_ = std::make_unique<base::ClientAuthenticator>(task_runner_);
+    authenticator_ = std::make_unique<base::ClientAuthenticator>(io_task_runner_);
 
     authenticator_->setIdentify(proto::IDENTIFY_SRP);
     authenticator_->setUserName(router_config_.username);
@@ -133,8 +155,11 @@ void BookController::onTcpConnected()
             // few seconds to be refused again. The person is told and the controller waits.
             connected_ = false;
 
-            if (delegate_)
-                delegate_->onBookAuthFailed();
+            ui_task_runner_.postTask([this]()
+            {
+                if (delegate_)
+                    delegate_->onBookAuthFailed();
+            });
             return;
         }
 
@@ -152,22 +177,31 @@ void BookController::onTcpConnected()
 
         LOG(LS_INFO) << "Address book channel is open";
 
-        if (delegate_)
-            delegate_->onBookConnected();
+        ui_task_runner_.postTask([this]()
+        {
+            if (delegate_)
+                delegate_->onBookConnected();
+        });
     });
 }
 
 //--------------------------------------------------------------------------------------------------
 void BookController::onTcpDisconnected(base::NetworkChannel::ErrorCode error_code)
 {
-    LOG(LS_INFO) << "Address book connection closed: " << base::NetworkChannel::errorToString(
-        error_code);
+    LOG(LS_INFO) << "Address book connection closed: "
+                 << base::NetworkChannel::errorToString(error_code);
 
     const bool was_connected = connected_;
     connected_ = false;
 
-    if (delegate_ && was_connected)
-        delegate_->onBookDisconnected();
+    if (was_connected)
+    {
+        ui_task_runner_.postTask([this]()
+        {
+            if (delegate_)
+                delegate_->onBookDisconnected();
+        });
+    }
 
     scheduleReconnect();
 }
@@ -181,26 +215,33 @@ void BookController::onTcpMessageReceived(uint8_t channel_id, const base::ByteAr
         return;
     }
 
-    proto::RouterToBookClient message;
-    if (!base::parse(buffer, &message))
+    // Parsed here, on the network thread, and handed over as a message of its own. The buffer
+    // belongs to the channel and does not outlive this call.
+    std::shared_ptr<proto::RouterToBookClient> message =
+        std::make_shared<proto::RouterToBookClient>();
+
+    if (!base::parse(buffer, message.get()))
     {
         LOG(LS_ERROR) << "Could not read an address book message from the router";
         return;
     }
 
-    if (!delegate_)
-        return;
+    ui_task_runner_.postTask([this, message]()
+    {
+        if (!delegate_)
+            return;
 
-    if (message.has_book_list())
-        delegate_->onBookList(message.book_list());
-    else if (message.has_book_pull())
-        delegate_->onBookPull(message.book_pull());
-    else if (message.has_book_push_result())
-        delegate_->onBookPushResult(message.book_push_result());
-    else if (message.has_book_changed())
-        delegate_->onBookChanged(message.book_changed());
-    else
-        LOG(LS_ERROR) << "Unhandled address book message from the router";
+        if (message->has_book_list())
+            delegate_->onBookList(message->book_list());
+        else if (message->has_book_pull())
+            delegate_->onBookPull(message->book_pull());
+        else if (message->has_book_push_result())
+            delegate_->onBookPushResult(message->book_push_result());
+        else if (message->has_book_changed())
+            delegate_->onBookChanged(message->book_changed());
+        else
+            LOG(LS_ERROR) << "Unhandled address book message from the router";
+    });
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -213,13 +254,26 @@ void BookController::onTcpMessageWritten(
 //--------------------------------------------------------------------------------------------------
 void BookController::send(const google::protobuf::MessageLite& message)
 {
-    if (!connected_ || !channel_)
+    // Called from the thread of the window, so the sending is moved to the network thread rather
+    // than touching the channel from here.
+    base::ByteArray buffer = base::serialize(message);
+
+    if (!io_task_runner_)
     {
-        LOG(LS_ERROR) << "Attempt to send an address book message while not connected";
+        LOG(LS_ERROR) << "Attempt to send an address book message before the thread was started";
         return;
     }
 
-    channel_->send(proto::ROUTER_CHANNEL_ID_BOOK, base::serialize(message));
+    io_task_runner_->postTask([this, buffer = std::move(buffer)]() mutable
+    {
+        if (!connected_ || !channel_)
+        {
+            LOG(LS_ERROR) << "Attempt to send an address book message while not connected";
+            return;
+        }
+
+        channel_->send(proto::ROUTER_CHANNEL_ID_BOOK, std::move(buffer));
+    });
 }
 
 //--------------------------------------------------------------------------------------------------

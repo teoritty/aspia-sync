@@ -20,6 +20,8 @@
 #define CONSOLE_BOOK_BOOK_CONTROLLER_H
 
 #include "base/macros_magic.h"
+#include "base/scoped_task_runner.h"
+#include "base/threading/thread.h"
 #include "base/waitable_timer.h"
 #include "base/net/tcp_channel.h"
 #include "client/router_config.h"
@@ -50,11 +52,18 @@ namespace console {
 // It knows nothing about books. It connects, keeps the connection up, sends what it is given and
 // hands back what arrives. Deciding what any of it means is the engine's part, and keeping the two
 // apart is what makes the engine testable.
-class BookController final : public base::TcpChannel::Listener
+// The network lives on a thread of its own with an asio loop, because that is what a TcpChannel
+// needs - it takes its io context from the loop of the thread it is made on, and the loop of the
+// window is a Qt one. Everything handed back to the delegate is posted to the thread the window
+// runs on, so the address book is only ever touched from one thread.
+class BookController final
+    : public base::TcpChannel::Listener,
+      public base::Thread::Delegate
 {
 public:
+    // |ui_task_runner| is the task runner of the thread the delegate lives on.
     BookController(const client::RouterConfig& router_config,
-                   std::shared_ptr<base::TaskRunner> task_runner);
+                   std::shared_ptr<base::TaskRunner> ui_task_runner);
     ~BookController() final;
 
     class Delegate
@@ -91,6 +100,10 @@ public:
     void requestPush(const proto::BookPushRequest& request);
 
 protected:
+    // base::Thread::Delegate implementation.
+    void onBeforeThreadRunning() final;
+    void onAfterThreadRunning() final;
+
     // base::TcpChannel::Listener implementation.
     void onTcpConnected() final;
     void onTcpDisconnected(base::NetworkChannel::ErrorCode error_code) final;
@@ -109,11 +122,14 @@ private:
     static const int kMaxReconnectSeconds = 300;
 
     const client::RouterConfig router_config_;
-    std::shared_ptr<base::TaskRunner> task_runner_;
+
+    base::Thread io_thread_;
+    std::shared_ptr<base::TaskRunner> io_task_runner_;
+    base::ScopedTaskRunner ui_task_runner_;
 
     std::unique_ptr<base::TcpChannel> channel_;
     std::unique_ptr<base::ClientAuthenticator> authenticator_;
-    base::WaitableTimer reconnect_timer_;
+    std::unique_ptr<base::WaitableTimer> reconnect_timer_;
 
     Delegate* delegate_ = nullptr;
     bool connected_ = false;
