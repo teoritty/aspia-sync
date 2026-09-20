@@ -126,6 +126,8 @@ list(APPEND SOURCE_CONSOLE_BOOK
     book/flat_book.h
     book/merge.cc
     book/merge.h
+    book/sync_engine.cc
+    book/sync_engine.h
     book/sync_key.cc
     book/sync_key.h)
 
@@ -133,6 +135,7 @@ list(APPEND SOURCE_CONSOLE_BOOK_TESTS
     book/entry_guid_unittest.cc
     book/flat_book_unittest.cc
     book/merge_unittest.cc
+    book/sync_engine_unittest.cc
     book/sync_key_unittest.cc)
 
 add_library(aspia_console_book STATIC ${SOURCE_CONSOLE_BOOK})
