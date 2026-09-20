@@ -22,10 +22,12 @@
 #include "base/crypto/random.h"
 #include "base/files/base_paths.h"
 #include "base/files/file_util.h"
+#include "base/message_loop/message_loop.h"
 #include "base/peer/user.h"
 #include "build/version.h"
-#include "router/database_factory_sqlite.h"
 #include "router/database.h"
+#include "router/database_factory_sqlite.h"
+#include "router/server.h"
 #include "router/service.h"
 #include "router/settings.h"
 
@@ -34,8 +36,6 @@
 #include "router/win/service_util.h"
 #else
 #include "base/crypto/scoped_crypto_initializer.h"
-#include "base/message_loop/message_loop.h"
-#include "router/server.h"
 #endif
 
 #include <iostream>
@@ -237,6 +237,34 @@ void showHelp()
 
 } // namespace
 
+//--------------------------------------------------------------------------------------------------
+// Runs the router in this console instead of as a Windows service.
+//
+// The service code has a state for being started outside the service control manager, but nothing
+// ever calls onStart() in it: that happens inside serviceMain, which only runs when the manager
+// launched the process. So a router started by hand sits in an empty message loop and listens to
+// nothing at all.
+//
+// This is what makes a test stand possible: a service has to be installed, needs administrator
+// rights, and holds the executable open so that the next build cannot replace it.
+void runAsConsole()
+{
+    LOG(LS_INFO) << "Starting the router in console mode";
+
+    base::MessageLoop message_loop(base::MessageLoop::Type::ASIO);
+    std::shared_ptr<base::TaskRunner> task_runner = message_loop.taskRunner();
+
+    router::Server server(task_runner);
+    if (!server.start())
+    {
+        std::cout << "Unable to start the router." << std::endl;
+        return;
+    }
+
+    std::cout << "Router is running. Press Ctrl+C to stop." << std::endl;
+    message_loop.run();
+}
+
 #if defined(OS_WIN)
 //--------------------------------------------------------------------------------------------------
 int wmain()
@@ -273,6 +301,10 @@ int wmain()
     else if (command_line->hasSwitch(u"create-config"))
     {
         createConfig();
+    }
+    else if (command_line->hasSwitch(u"console"))
+    {
+        runAsConsole();
     }
     else if (command_line->hasSwitch(u"help"))
     {
