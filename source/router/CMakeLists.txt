@@ -61,6 +61,35 @@ if (WIN32)
     set(ROUTER_PLATFORM_LIBS comsupp crypt32 dbghelp netapi32 version)
 endif()
 
+# The shared address books, as the router keeps them. A library of its own: the router executable
+# cannot be linked into a test, and keeping this apart from the router keeps merges with upstream
+# mechanical. It depends on sqlite and base, not on the sessions or the server.
+list(APPEND SOURCE_ROUTER_BOOK
+    book/book_store.cc
+    book/book_store.h)
+
+list(APPEND SOURCE_ROUTER_BOOK_TESTS
+    book/book_store_unittest.cc)
+
+add_library(aspia_router_book STATIC ${SOURCE_ROUTER_BOOK})
+target_link_libraries(aspia_router_book
+    aspia_base
+    unofficial::sqlite3::sqlite3)
+
+add_executable(aspia_router_tests ${SOURCE_ROUTER_BOOK_TESTS})
+target_link_libraries(aspia_router_tests PRIVATE
+    aspia_router_book
+    aspia_base
+    aspia_proto
+    GTest::gtest
+    GTest::gtest_main
+    OpenSSL::Crypto
+    modp_b64
+    ${Protobuf_LITE_LIBRARIES}
+    unofficial::sqlite3::sqlite3
+    ${ROUTER_PLATFORM_LIBS})
+add_test(NAME aspia_router_tests COMMAND aspia_router_tests)
+
 add_executable(aspia_router ${SOURCE_ROUTER} ${SOURCE_ROUTER_WIN})
 
 if (WIN32)
@@ -70,6 +99,7 @@ endif()
 target_link_libraries(aspia_router
     aspia_base
     aspia_proto
+    aspia_router_book
     OpenSSL::Crypto
     modp_b64
     ${Protobuf_LITE_LIBRARIES}
