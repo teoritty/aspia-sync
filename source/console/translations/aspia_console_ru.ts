@@ -2009,12 +2009,12 @@ Synchronization can be switched off later; the book stays as it is.</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="355"/>
+        <location filename="../sync_wizard.cc" line="358"/>
         <source>This is the shared book. After joining, this address book will look like this. Nothing has been changed yet.</source>
         <translation>Это общая книга. После присоединения ваша адресная книга будет выглядеть так. Пока ничего не изменено.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="359"/>
+        <location filename="../sync_wizard.cc" line="362"/>
         <source>Joining the book &quot;%1&quot;.
 
 The shared book already holds %2 computer(s). This address book will be replaced with it, and the %3 computer(s) in it now will be taken out.
@@ -2031,12 +2031,12 @@ Synchronization can be switched off later; the book stays as it is.</source>
 Синхронизацию можно выключить позже, книга при этом останется как есть.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="373"/>
+        <location filename="../sync_wizard.cc" line="376"/>
         <source>The shared book is empty, so this address book becomes it. This is what everybody who joins after you will get. Nothing has been changed yet.</source>
         <translation>Общая книга пуста, поэтому ею станет ваша адресная книга. Именно это получат все, кто присоединится после вас. Пока ничего не изменено.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="377"/>
+        <location filename="../sync_wizard.cc" line="380"/>
         <source>Joining the book &quot;%1&quot;.
 
 The shared book is empty, so this address book becomes it: its %2 computer(s) will be sent to everybody who joins after you.
@@ -2053,69 +2053,69 @@ Synchronization can be switched off later; the book stays as it is.</source>
 Синхронизацию можно выключить позже, книга при этом останется как есть.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="396"/>
-        <location filename="../sync_wizard.cc" line="403"/>
+        <location filename="../sync_wizard.cc" line="399"/>
+        <location filename="../sync_wizard.cc" line="406"/>
         <source>Create a Shared Book</source>
         <translation>Создание общей книги</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="396"/>
+        <location filename="../sync_wizard.cc" line="399"/>
         <source>Name of the shared book:</source>
         <translation>Название общей книги:</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="397"/>
+        <location filename="../sync_wizard.cc" line="400"/>
         <source>Department</source>
         <translation>Отдел</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="404"/>
+        <location filename="../sync_wizard.cc" line="407"/>
         <source>Passphrase for the book. Everybody who joins it enters this same passphrase, and the router never learns it. It cannot be recovered if it is lost.</source>
         <translation>Пароль книги. Его же вводят все, кто к ней присоединяется, и роутер его не узнаёт. Если пароль потерять, восстановить его нельзя.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="417"/>
-        <location filename="../sync_wizard.cc" line="424"/>
+        <location filename="../sync_wizard.cc" line="420"/>
+        <location filename="../sync_wizard.cc" line="427"/>
         <source>Unable to prepare the key for the book.</source>
         <translation>Не удалось подготовить ключ для книги.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="434"/>
+        <location filename="../sync_wizard.cc" line="437"/>
         <source>Creating the shared book...</source>
         <translation>Создание общей книги…</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="450"/>
+        <location filename="../sync_wizard.cc" line="453"/>
         <source>A shared book with this name already exists.</source>
         <translation>Общая книга с таким названием уже существует.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="452"/>
+        <location filename="../sync_wizard.cc" line="455"/>
         <source>The router refused to create the book.</source>
         <translation>Роутер отказался создать книгу.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="460"/>
+        <location filename="../sync_wizard.cc" line="463"/>
         <source>The shared book was created. Enter the passphrase to join it.</source>
         <translation>Общая книга создана. Введите пароль, чтобы присоединиться.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="484"/>
+        <location filename="../sync_wizard.cc" line="489"/>
         <source>Reading the list of shared books...</source>
         <translation>Чтение списка общих книг…</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="492"/>
+        <location filename="../sync_wizard.cc" line="497"/>
         <source>The connection to the router was lost.</source>
         <translation>Связь с роутером потеряна.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="500"/>
+        <location filename="../sync_wizard.cc" line="505"/>
         <source>The router refused the account stored in this address book.</source>
         <translation>Роутер отклонил учётную запись, сохранённую в этой адресной книге.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="524"/>
+        <location filename="../sync_wizard.cc" line="538"/>
         <source>The router has no shared address books yet. The first one has to be created; that needs an administrator account on the router.</source>
         <translation>На роутере пока нет общих адресных книг. Первую нужно создать; для этого требуется учётная запись администратора на роутере.</translation>
     </message>
@@ -2124,7 +2124,7 @@ Synchronization can be switched off later; the book stays as it is.</source>
         <translation type="vanished">На роутере пока нет общих адресных книг. Её должен создать администратор.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="542"/>
+        <location filename="../sync_wizard.cc" line="558"/>
         <source>The router refused to send the book.</source>
         <translation>Роутер отказался отдать книгу.</translation>
     </message>

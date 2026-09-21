@@ -349,6 +349,9 @@ void SyncWizard::buildPreview()
                    preview_tree_->invisibleRootItem());
     preview_tree_->expandToDepth(0);
 
+    // Names are what a person reads here, and cut off to their first few letters they say little.
+    preview_tree_->resizeColumnToContents(0);
+
     if (replaces_local_)
     {
         preview_hint_->setText(
@@ -462,7 +465,9 @@ void SyncWizard::onBookCreated(const std::string& guid, const std::string& error
     // The administrator connection has done its one job.
     admin_controller_.reset();
 
-    // And the list is asked for again, so the new book appears in it.
+    // And the list is asked for again, so the new book appears in it - chosen, since joining some
+    // other book straight after creating this one is never what was meant.
+    created_guid_ = QString::fromStdString(guid);
     controller_->requestBookList(1);
 }
 
@@ -519,7 +524,16 @@ void SyncWizard::onBookList(const proto::BookList& message)
 
     const bool empty = (book_combo_->count() == 0);
 
-    if (empty)
+    if (!created_guid_.isEmpty())
+    {
+        const int index = book_combo_->findData(created_guid_, Qt::UserRole);
+        if (index >= 0)
+            book_combo_->setCurrentIndex(index);
+
+        // The status still says the book was created and what to do next; it is left alone.
+        created_guid_.clear();
+    }
+    else if (empty)
     {
         setStatus(tr("The router has no shared address books yet. The first one has to be "
                      "created; that needs an administrator account on the router."), false);
@@ -529,7 +543,9 @@ void SyncWizard::onBookList(const proto::BookList& message)
         setStatus(QString());
     }
 
-    create_button_->setVisible(empty);
+    // Always there, not only while the router is empty: a department can keep several books, and
+    // every one after the first has to be created too.
+    create_button_->setVisible(true);
     updateButtons();
 }
 

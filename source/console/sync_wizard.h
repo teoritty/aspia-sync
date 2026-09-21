@@ -125,6 +125,9 @@ private:
     QLabel* summary_label_ = nullptr;
 
     bool replaces_local_ = false;
+
+    // The book just created, to be chosen once the list comes back with it.
+    QString created_guid_;
     QPushButton* create_button_ = nullptr;
     QPushButton* back_button_ = nullptr;
     QPushButton* next_button_ = nullptr;
