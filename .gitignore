@@ -1,6 +1,8 @@
 # VS build folders
 /.vs/
+/.vscode/
 /build/
+/builds/
 /debug/
 /release/
 /installer/.vs/
