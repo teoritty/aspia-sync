@@ -27,6 +27,7 @@
 #include "build/version.h"
 #include "router/database.h"
 #include "router/database_factory_sqlite.h"
+#include "router/database_sqlite.h"
 #include "router/server.h"
 #include "router/service.h"
 #include "router/settings.h"
@@ -76,6 +77,27 @@ void generateAndPrintKeys()
     std::cout << "Private key: " << base::toHex(private_key) << std::endl;
     std::cout << "Public key: " << base::toHex(public_key) << std::endl;
 }
+
+#if defined(OS_POSIX)
+//--------------------------------------------------------------------------------------------------
+// Leaves |path| readable by its owner alone. The settings hold the private key of the router and
+// the database the verifiers of every password; the router runs as root, and nobody else on the
+// server has any business reading either. The default leaves them readable by every account.
+void keepPrivate(const std::filesystem::path& path)
+{
+    std::error_code error_code;
+    std::filesystem::permissions(path,
+                                 std::filesystem::perms::owner_read |
+                                 std::filesystem::perms::owner_write,
+                                 std::filesystem::perm_options::replace,
+                                 error_code);
+    if (error_code)
+    {
+        std::cout << "Failed to restrict access to " << path << ": " << error_code.message()
+                  << std::endl;
+    }
+}
+#endif // defined(OS_POSIX)
 
 //--------------------------------------------------------------------------------------------------
 void createConfig()
@@ -211,6 +233,11 @@ void createConfig()
     settings.setPrivateKey(private_key);
     settings.setSeedKey(seed_key);
     settings.flush();
+
+#if defined(OS_POSIX)
+    keepPrivate(settings_file_path);
+    keepPrivate(router::DatabaseSqlite::filePath());
+#endif // defined(OS_POSIX)
 
     std::cout << "Configuration successfully created. Don't forget to change your password!"
               << std::endl;
