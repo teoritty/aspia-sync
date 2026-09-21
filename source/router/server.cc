@@ -26,6 +26,7 @@
 #include "base/files/base_paths.h"
 #include "base/files/file_util.h"
 #include "base/net/tcp_channel.h"
+#include "router/book/book_store.h"
 #include "router/database_factory_sqlite.h"
 #include "router/database_sqlite.h"
 #include "router/session_admin.h"
@@ -34,6 +35,9 @@
 #include "router/session_relay.h"
 #include "router/settings.h"
 #include "router/user_list_db.h"
+
+#include <chrono>
+#include <ctime>
 
 namespace router {
 
@@ -193,8 +197,45 @@ bool Server::start()
     server_ = std::make_unique<base::TcpServer>();
     server_->start(listen_interface, port, this);
 
+    // And the sweep of what the shared books no longer need, which then repeats daily.
+    pruneBooks();
+
     LOG(LS_INFO) << "Server started";
     return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+void Server::pruneBooks()
+{
+    std::unique_ptr<BookStore> store = BookStore::open(DatabaseSqlite::filePath());
+    if (store)
+    {
+        const int64_t now = static_cast<int64_t>(std::time(nullptr));
+
+        std::vector<Book> books;
+        if (store->bookList(&books))
+        {
+            int64_t removed = 0;
+            for (const Book& book : books)
+                removed += store->pruneTombstones(book.guid, now - kTombstoneRetentionSeconds);
+
+            if (removed != 0)
+                LOG(LS_INFO) << "Headstones removed: " << removed;
+        }
+        else
+        {
+            LOG(LS_ERROR) << "Unable to list the shared books";
+        }
+
+        store->pruneAppliedOps(now - kAppliedOpRetentionSeconds);
+    }
+    else
+    {
+        // Not fatal. Nothing is lost by a sweep that did not happen; the next one is a day away.
+        LOG(LS_ERROR) << "Unable to open the address book store to clean it up";
+    }
+
+    task_runner_->postDelayedTask(std::bind(&Server::pruneBooks, this), std::chrono::hours(24));
 }
 
 //--------------------------------------------------------------------------------------------------

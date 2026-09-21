@@ -73,6 +73,18 @@ protected:
                            proto::RouterSession session_type) final;
 
 private:
+    // Drops what the shared books no longer need: headstones for records deleted long ago, and the
+    // record of batches already applied. Runs at start and once a day after that.
+    //
+    // Headstones are kept far longer than the thirty days a deleted record is meant to be
+    // recoverable for, because they are what stops a console coming back from a month away from
+    // putting back everything the department deleted while it was gone. The two intervals look
+    // alike and are not the same thing.
+    void pruneBooks();
+
+    static constexpr int64_t kTombstoneRetentionSeconds = 60 * 24 * 60 * 60; // 60 days.
+    static constexpr int64_t kAppliedOpRetentionSeconds = 7 * 24 * 60 * 60;  // 7 days.
+
     std::shared_ptr<base::TaskRunner> task_runner_;
     base::local_shared_ptr<DatabaseFactory> database_factory_;
     std::unique_ptr<base::TcpServer> server_;

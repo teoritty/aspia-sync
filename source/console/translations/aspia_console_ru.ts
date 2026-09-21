@@ -1082,80 +1082,80 @@
 <context>
     <name>console::AddressBookTab</name>
     <message>
-        <location filename="../address_book_tab.cc" line="220"/>
+        <location filename="../address_book_tab.cc" line="225"/>
         <source>Unable to open address book file &quot;%1&quot;.</source>
         <translation>Не удалось открыть файл адресной книги &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="228"/>
+        <location filename="../address_book_tab.cc" line="233"/>
         <source>Unable to read address book file &quot;%1&quot;.</source>
         <translation>Не удалось прочитать файл адресной книги &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="238"/>
+        <location filename="../address_book_tab.cc" line="243"/>
         <source>The address book file &quot;%1&quot; is corrupted or has an unknown format.</source>
         <translation>Файл адресной книги &quot;%1&quot; поврежден или имеет неизвестный формат.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="285"/>
+        <location filename="../address_book_tab.cc" line="290"/>
         <source>Unable to decrypt the address book with the specified password.</source>
         <translation>Не удалось расшифровать адресную книгу с указанным паролем.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="292"/>
+        <location filename="../address_book_tab.cc" line="297"/>
         <source>The address book file is corrupted or has an unknown format.</source>
         <translation>Файл адресной книги поврежден или имеет неизвестный формат.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="277"/>
+        <location filename="../address_book_tab.cc" line="282"/>
         <source>The address book file is encrypted with an unsupported encryption type.</source>
         <translation>Файл адресной книги зашифрован неподдерживаемым методом шифрования.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="699"/>
+        <location filename="../address_book_tab.cc" line="704"/>
         <source>Are you sure you want to delete computer group &quot;%1&quot; and all child items?</source>
         <translation>Вы действительно хотите удалить группу компьютеров &quot;%1&quot; и все дочерние элементы?</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="703"/>
-        <location filename="../address_book_tab.cc" line="741"/>
+        <location filename="../address_book_tab.cc" line="708"/>
+        <location filename="../address_book_tab.cc" line="746"/>
         <source>Confirmation</source>
         <translation>Подтверждение</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="707"/>
-        <location filename="../address_book_tab.cc" line="745"/>
+        <location filename="../address_book_tab.cc" line="712"/>
+        <location filename="../address_book_tab.cc" line="750"/>
         <source>Yes</source>
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="708"/>
-        <location filename="../address_book_tab.cc" line="746"/>
+        <location filename="../address_book_tab.cc" line="713"/>
+        <location filename="../address_book_tab.cc" line="751"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="737"/>
+        <location filename="../address_book_tab.cc" line="742"/>
         <source>Are you sure you want to delete computer &quot;%1&quot;?</source>
         <translation>Вы действительно хотите удалить компьютер &quot;%1&quot;?</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1090"/>
+        <location filename="../address_book_tab.cc" line="1101"/>
         <source>Online</source>
         <translation>В сети</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1095"/>
+        <location filename="../address_book_tab.cc" line="1106"/>
         <source>Offline</source>
         <translation>Не в сети</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1508"/>
+        <location filename="../address_book_tab.cc" line="1588"/>
         <source>Save Address Book</source>
         <translation>Сохранение адресной книги</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1510"/>
+        <location filename="../address_book_tab.cc" line="1590"/>
         <source>Aspia Address Book (*.aab)</source>
         <translation>Адресная книга Aspia (*.aab)</translation>
     </message>
@@ -1164,28 +1164,28 @@
         <translation type="vanished">Не удалось создать или открыть файл адресной книги.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1540"/>
+        <location filename="../address_book_tab.cc" line="1615"/>
         <source>Unable to write address book file.</source>
         <translation>Не удалось записать файл адресной книги.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1571"/>
+        <location filename="../address_book_tab.cc" line="1646"/>
         <source>Root Group</source>
         <translation>Корневая группа</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1583"/>
-        <location filename="../address_book_tab.cc" line="1598"/>
+        <location filename="../address_book_tab.cc" line="1658"/>
+        <location filename="../address_book_tab.cc" line="1673"/>
         <source>Warning</source>
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1585"/>
+        <location filename="../address_book_tab.cc" line="1660"/>
         <source>Could not open address book</source>
         <translation>Не удалось открыть адресную книгу</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1600"/>
+        <location filename="../address_book_tab.cc" line="1675"/>
         <source>Failed to save address book</source>
         <translation>Не удалось сохранить адресную книгу</translation>
     </message>
@@ -1730,84 +1730,86 @@
         <translation>Синхронизация адресной книги</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="68"/>
+        <location filename="../sync_dialog.cc" line="73"/>
         <source>State:</source>
         <translation>Состояние:</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="69"/>
+        <location filename="../sync_dialog.cc" line="74"/>
         <source>Waiting to be sent:</source>
         <translation>Ожидает отправки:</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="73"/>
+        <location filename="../sync_dialog.cc" line="78"/>
         <source>Changes are sent as soon as they are made, and what colleagues change arrives on its own. Nothing has to be saved by hand.</source>
         <translation>Изменения отправляются сразу, а правки коллег приходят сами. Сохранять вручную ничего не нужно.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="80"/>
+        <location filename="../sync_dialog.cc" line="85"/>
         <source>Stop synchronizing this book</source>
         <translation>Прекратить синхронизацию этой книги</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="84"/>
+        <location filename="../sync_dialog.cc" line="89"/>
         <source>State</source>
         <translation>Состояние</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="91"/>
+        <location filename="../sync_dialog.cc" line="96"/>
         <source>These computers were changed here and by somebody else in the same field, so neither version can be taken without losing the other. Until one is chosen, what you see in the book is your own version.</source>
         <translation>Эти компьютеры изменены и здесь, и кем-то ещё в одном и том же поле, поэтому взять одну версию нельзя, не потеряв другую. Пока выбор не сделан, в книге показана ваша версия.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="100"/>
+        <location filename="../sync_dialog.cc" line="105"/>
         <source>Computer</source>
         <translation>Компьютер</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="109"/>
+        <location filename="../sync_dialog.cc" line="114"/>
         <source>Keep my version</source>
-        <translation type="unfinished"></translation>
+        <translation>Оставить мою версию</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="110"/>
+        <location filename="../sync_dialog.cc" line="115"/>
         <source>Take their version</source>
-        <translation type="unfinished"></translation>
+        <translation>Взять версию коллег</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="121"/>
+        <location filename="../sync_dialog.cc" line="126"/>
         <source>Conflicts</source>
         <translation>Конфликты</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="141"/>
+        <location filename="../sync_dialog.cc" line="146"/>
         <source>Not synchronized</source>
         <translation>Не синхронизируется</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="147"/>
+        <location filename="../sync_dialog.cc" line="152"/>
         <source>Stopped. The router was restored from a backup, or the passphrase no longer matches. Join the book again.</source>
         <translation>Остановлено. Роутер восстановлен из резервной копии либо пароль больше не подходит. Присоединитесь к книге заново.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="153"/>
+        <location filename="../sync_dialog.cc" line="158"/>
         <source>Synchronized</source>
         <translation>Синхронизируется</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="158"/>
+        <location filename="../sync_dialog.cc" line="163"/>
         <source>Offline. Changes are kept and will be sent when the router is reachable again.</source>
         <translation>Нет связи. Изменения сохраняются и уйдут, когда роутер снова будет доступен.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="216"/>
+        <location filename="../sync_dialog.cc" line="221"/>
         <source>Replace &quot;%1&quot; with the version your colleagues have?
 
 What you changed here will be lost.</source>
-        <translation type="unfinished"></translation>
+        <translation>Заменить «%1» версией, которая есть у коллег?
+
+То, что вы изменили здесь, будет потеряно.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="247"/>
+        <location filename="../sync_dialog.cc" line="252"/>
         <source>Stop synchronizing this address book?
 
 The book stays exactly as it is and becomes an ordinary local file again. Changes made here will no longer reach your colleagues, and theirs will no longer reach you.</source>
@@ -1816,7 +1818,7 @@ The book stays exactly as it is and becomes an ordinary local file again. Change
 Книга останется в точности такой, как есть, и снова станет обычным локальным файлом. Ваши изменения перестанут доходить до коллег, а их изменения — до вас.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="255"/>
+        <location filename="../sync_dialog.cc" line="260"/>
         <source>
 
 %1 change(s) have not been sent yet and will stay on this machine only.</source>
@@ -1825,10 +1827,10 @@ The book stays exactly as it is and becomes an ordinary local file again. Change
 Неотправленных изменений: %1. Они останутся только на этой машине.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="215"/>
-        <location filename="../sync_dialog.cc" line="260"/>
+        <location filename="../sync_dialog.cc" line="220"/>
+        <location filename="../sync_dialog.cc" line="265"/>
         <source>Confirmation</source>
-        <translation type="unfinished">Подтверждение</translation>
+        <translation>Подтверждение</translation>
     </message>
 </context>
 <context>
@@ -2008,22 +2010,22 @@ Synchronization can be switched off later; the book stays as it is.</source>
         <translation>Общая книга создана. Введите пароль, чтобы присоединиться.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="436"/>
+        <location filename="../sync_wizard.cc" line="438"/>
         <source>Reading the list of shared books...</source>
         <translation>Чтение списка общих книг…</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="444"/>
+        <location filename="../sync_wizard.cc" line="446"/>
         <source>The connection to the router was lost.</source>
         <translation>Связь с роутером потеряна.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="452"/>
+        <location filename="../sync_wizard.cc" line="454"/>
         <source>The router refused the account stored in this address book.</source>
         <translation>Роутер отклонил учётную запись, сохранённую в этой адресной книге.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="476"/>
+        <location filename="../sync_wizard.cc" line="478"/>
         <source>The router has no shared address books yet. The first one has to be created; that needs an administrator account on the router.</source>
         <translation>На роутере пока нет общих адресных книг. Первую нужно создать; для этого требуется учётная запись администратора на роутере.</translation>
     </message>
@@ -2032,7 +2034,7 @@ Synchronization can be switched off later; the book stays as it is.</source>
         <translation type="vanished">На роутере пока нет общих адресных книг. Её должен создать администратор.</translation>
     </message>
     <message>
-        <location filename="../sync_wizard.cc" line="494"/>
+        <location filename="../sync_wizard.cc" line="496"/>
         <source>The router refused to send the book.</source>
         <translation>Роутер отказался отдать книгу.</translation>
     </message>
