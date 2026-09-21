@@ -1,6 +1,6 @@
 # Сборка
 
-Ветка собирается только под Windows x64.
+Консоль, клиент и хост собираются только под Windows x64. Роутер — ещё и под Linux, см. ниже.
 
 ## Что нужно поставить
 
@@ -48,3 +48,40 @@ tools\build\verify.cmd
 ## Правка сборочных скриптов
 
 Файлы `.cmd` должны иметь переводы строк CRLF, иначе `cmd` разбирает их через строку и выдаёт бессмысленные сообщения вроде `|| was unexpected at this time`. В `.gitattributes` это задано правилом `*.cmd text eol=crlf`; при правке сторонним редактором следите, чтобы он не переписал их в LF.
+
+## Роутер под Linux
+
+Собирается только роутер: без Qt, кодеков, звука и рабочего стола (опция `ASPIA_BUILD_ROUTER_ONLY`, пресет `linux-router`). Результат — пакет `.deb` с программой и службой systemd.
+
+Собирать нужно на **Ubuntu 24.04** — самой старой системе, на которой роутер должен работать. Собранное там работает и на более новых; собранное на новой на 24.04 не запустится. Подойдёт WSL с Ubuntu 24.04.
+
+```
+sudo apt install build-essential cmake ninja-build git curl zip unzip tar pkg-config nasm     autoconf autoconf-archive automake libtool python3 bison flex
+
+git submodule update --init
+tools/build/build_router_linux.sh
+```
+
+Скрипт собирает, прогоняет тесты и кладёт пакет в `builds/linux-router/aspia-router-<версия>-x86_64.deb`. Первая сборка идёт около получаса (vcpkg собирает OpenSSL, protobuf, ICU и остальное), следующие — минуты.
+
+В WSL собирайте в файловой системе Linux (`~/...`), а не на диске Windows (`/mnt/c/...`): там сборка медленнее в разы.
+
+### Установка на сервер
+
+```
+sudo apt install ./aspia-router-<версия>-x86_64.deb
+sudo aspia_router --create-config
+sudo systemctl enable --now aspia-router
+```
+
+`--create-config` создаёт пользователя `admin` с паролем `admin`, ключи и базу. Пароль смените сразу, из консоли: «Инструменты → Управление маршрутизатором».
+
+| Что | Где |
+|---|---|
+| Настройки и приватный ключ | `/etc/aspia/router.json` (доступ только root) |
+| Публичный ключ | `/etc/aspia/router.pub` |
+| База: пользователи, хосты, общие книги | `/var/lib/aspia/router.db3` (доступ только root) |
+| Логи | журнал systemd: `journalctl -u aspia-router` |
+
+Порт по умолчанию — TCP 8060; если на сервере включён брандмауэр: `sudo ufw allow 8060/tcp`.
+

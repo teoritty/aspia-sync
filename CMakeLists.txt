@@ -39,30 +39,53 @@ add_definitions(-DASPIA_VERSION_MAJOR=${ASPIA_VERSION_MAJOR}
                 -DASPIA_VERSION_MINOR=${ASPIA_VERSION_MINOR}
                 -DASPIA_VERSION_PATCH=${ASPIA_VERSION_PATCH})
 
+# The router alone, with nothing that needs a screen: no Qt, no codecs, no console, host or client.
+# It is how the router is built for Linux, where it runs as a server and nothing else of the project
+# has any use. Off by default, so the Windows build is what it always was.
+option(ASPIA_BUILD_ROUTER_ONLY "Build only the router and what it depends on" OFF)
+
+if (ASPIA_BUILD_ROUTER_ONLY)
+    message(STATUS "Building the router only")
+endif()
+
+if (UNIX AND NOT APPLE)
+    message(STATUS "Linux detected")
+    set(LINUX TRUE)
+endif()
+
 if (WIN32)
     message(STATUS "Windows detected")
 endif()
 
 set(CMAKE_SKIP_BUILD_RPATH ON)
 
-find_package(Qt5 REQUIRED Core Gui Network PrintSupport Widgets Xml)
-find_package(Qt5LinguistTools)
 find_package(asio CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
-find_package(libyuv CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
-find_package(Opus CONFIG REQUIRED)
 find_package(protobuf CONFIG REQUIRED)
 find_package(RapidJSON CONFIG REQUIRED)
-find_package(unofficial-libvpx CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 
+if (NOT ASPIA_BUILD_ROUTER_ONLY)
+    find_package(Qt5 REQUIRED Core Gui Network PrintSupport Widgets Xml)
+    find_package(Qt5LinguistTools)
+    find_package(libyuv CONFIG REQUIRED)
+    find_package(Opus CONFIG REQUIRED)
+    find_package(unofficial-libvpx CONFIG REQUIRED)
+endif()
+
 if (WIN32)
-    find_package(Qt5WinExtras REQUIRED)
+    if (NOT ASPIA_BUILD_ROUTER_ONLY)
+        find_package(Qt5WinExtras REQUIRED)
+    endif()
     find_path(WTL_INCLUDE_DIRS "atlapp.h")
+endif()
+
+if (UNIX)
+    find_package(ICU REQUIRED uc dt)
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

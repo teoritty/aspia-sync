@@ -25,7 +25,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_AUTORCC_OPTIONS -compress 9 -threshold 5)
 
-if(NOT Qt5LinguistTools_FOUND)
+if (NOT ASPIA_BUILD_ROUTER_ONLY AND NOT Qt5LinguistTools_FOUND)
     message(WARNING "Qt5 linguist tools not found. Internationalization support will be disabled.")
     add_definitions(-DI18L_DISABLED)
 endif()
@@ -94,12 +94,17 @@ set(THIRD_PARTY_LIBS
     zstd::libzstd_static
     OpenSSL::Crypto
     OpenSSL::SSL
-    Opus::opus
     modp_b64
-    libwebm
-    unofficial::libvpx::libvpx
-    x11region
-    yuv)
+    x11region)
+
+# What only the parts that deal with sound and pictures use. A router-only build has none of them.
+if (NOT ASPIA_BUILD_ROUTER_ONLY)
+    list(APPEND THIRD_PARTY_LIBS
+        Opus::opus
+        libwebm
+        unofficial::libvpx::libvpx
+        yuv)
+endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/source ${PROJECT_BINARY_DIR}/source ${WTL_INCLUDE_DIRS})
 
@@ -146,6 +151,16 @@ if (MSVC)
 
     # Static runtime library.
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+if (LINUX)
+    # C++ compliller flags.
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fPIC")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fPIC")
+
+    # C compiller flags.
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fPIC")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fPIC")
 endif()
 
 check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT error)
@@ -208,18 +223,21 @@ message(STATUS "Git commit: ${GIT_COMMIT_HASH}")
 message(STATUS "Git commit count: ${GIT_COMMIT_COUNT}")
 
 add_subdirectory(base)
-add_subdirectory(client)
-add_subdirectory(common)
-add_subdirectory(console)
 add_subdirectory(proto)
-add_subdirectory(qt_base)
-add_subdirectory(relay)
 add_subdirectory(router)
 add_subdirectory(third_party)
-add_subdirectory(tools)
 
-if (WIN32)
-    add_subdirectory(host)
+if (NOT ASPIA_BUILD_ROUTER_ONLY)
+    add_subdirectory(client)
+    add_subdirectory(common)
+    add_subdirectory(console)
+    add_subdirectory(qt_base)
+    add_subdirectory(relay)
+    add_subdirectory(tools)
+
+    if (WIN32)
+        add_subdirectory(host)
+    endif()
 endif()
 
 ###################################################################################################
@@ -243,27 +261,53 @@ set(CPACK_PACKAGE_VERSION_PATCH "${ASPIA_VERSION_PATCH}")
 # Console
 #--------------------------------------------------------------------------------------------------
 
-install(TARGETS aspia_console
-    BUNDLE DESTINATION . COMPONENT console
-    RUNTIME DESTINATION bin COMPONENT console)
-set(CPACK_COMPONENT_CONSOLE_NAME "aspia-console")
-set(CPACK_COMPONENT_CONSOLE_DISPLAY_NAME "Aspia Console")
-set(CPACK_COMPONENT_CONSOLE_DESCRIPTION "Console for managing hosts and routers.")
+if (NOT ASPIA_BUILD_ROUTER_ONLY)
+    install(TARGETS aspia_console
+        BUNDLE DESTINATION . COMPONENT console
+        RUNTIME DESTINATION bin COMPONENT console)
+    set(CPACK_COMPONENT_CONSOLE_NAME "aspia-console")
+    set(CPACK_COMPONENT_CONSOLE_DISPLAY_NAME "Aspia Console")
+    set(CPACK_COMPONENT_CONSOLE_DESCRIPTION "Console for managing hosts and routers.")
+endif()
 
 #--------------------------------------------------------------------------------------------------
 # Client
 #--------------------------------------------------------------------------------------------------
 
-install(TARGETS aspia_client
-    BUNDLE DESTINATION . COMPONENT client
-    RUNTIME DESTINATION bin COMPONENT client)
-set(CPACK_COMPONENT_CLIENT_NAME "aspia-client")
-set(CPACK_COMPONENT_CLIENT_DISPLAY_NAME "Aspia Client")
-set(CPACK_COMPONENT_CLIENT_DESCRIPTION "Client for managing hosts.")
+if (NOT ASPIA_BUILD_ROUTER_ONLY)
+    install(TARGETS aspia_client
+        BUNDLE DESTINATION . COMPONENT client
+        RUNTIME DESTINATION bin COMPONENT client)
+    set(CPACK_COMPONENT_CLIENT_NAME "aspia-client")
+    set(CPACK_COMPONENT_CLIENT_DISPLAY_NAME "Aspia Client")
+    set(CPACK_COMPONENT_CLIENT_DESCRIPTION "Client for managing hosts.")
+endif()
 
 #--------------------------------------------------------------------------------------------------
 # Router
 #--------------------------------------------------------------------------------------------------
+
+if (LINUX)
+    install(TARGETS aspia_router
+        BUNDLE DESTINATION . COMPONENT router
+        RUNTIME DESTINATION bin COMPONENT router)
+    set(CPACK_COMPONENT_ROUTER_NAME "aspia-router")
+    set(CPACK_COMPONENT_ROUTER_DISPLAY_NAME "Aspia Router")
+    set(CPACK_COMPONENT_ROUTER_DESCRIPTION "Provides a connection routing service.")
+
+    # Service file.
+    install(FILES router/linux/aspia-router.service DESTINATION lib/systemd/system COMPONENT router)
+
+    set(CPACK_DEBIAN_ROUTER_FILE_NAME
+        "${CPACK_COMPONENT_ROUTER_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_PROCESSOR}.deb")
+
+    set(CPACK_GENERATOR "DEB")
+    set(CPACK_DEB_COMPONENT_INSTALL ON)
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+    set(CPACK_DEBIAN_PACKAGE_SECTION "net")
+    set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+    set(CPACK_COMPONENTS_ALL router)
+endif()
 
 #--------------------------------------------------------------------------------------------------
 # Relay

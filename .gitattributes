@@ -51,6 +51,11 @@
 *.vcxproj text eol=crlf
 *.xml text eol=crlf
 
+# Files read on Linux, where a carriage return ends up inside the value: a shell script stops at
+# the first line, and systemd looks for a program whose name ends in a carriage return.
+*.sh text eol=lf
+*.service text eol=lf
+
 # Files with these extensions are accepted binary files inside the ReactOS
 # tree. Git must not tamper with them at all!
 *.avi binary

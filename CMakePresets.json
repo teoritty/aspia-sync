@@ -24,6 +24,18 @@
       }
     },
     {
+      "name": "linux-router",
+      "description": "The router alone, for a Linux server: no Qt, no codecs, no desktop programs.",
+      "inherits": [
+        "ninja-multi-vcpkg-ci"
+      ],
+      "cacheVariables": {
+        "ASPIA_BUILD_ROUTER_ONLY": "ON",
+        "VCPKG_MANIFEST_NO_DEFAULT_FEATURES": "ON",
+        "VCPKG_TARGET_TRIPLET": "x64-linux"
+      }
+    },
+    {
       "name": "ninja-multi-vcpkg-local-base",
       "hidden": true,
       "inherits": [
@@ -149,6 +161,11 @@
     }
   ],
   "testPresets": [
+    {
+      "name": "linux-router",
+      "configurePreset": "linux-router",
+      "configuration": "Release"
+    },
     {
       "name": "ninja-multi-vcpkg-ci-release", 
       "configurePreset": "ninja-multi-vcpkg-ci",

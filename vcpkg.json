@@ -10,22 +10,33 @@
       "name": "icu",
       "platform": "linux | osx"
     },
-    "libvpx",
-    "libyuv",
     "openssl",
-    "opus",
     "protobuf",
-    "qt5-base",
-    "qt5-translations",
-    {
-      "name": "qt5-winextras",
-      "platform": "windows"
-    },
     "rapidjson",
+    "sqlite3",
     {
       "name": "wtl",
       "platform": "windows"
     },
     "zstd"
-  ]
+  ],
+  "default-features": [
+    "desktop"
+  ],
+  "features": {
+    "desktop": {
+      "description": "What the console, the client and the host need and the router does not",
+      "dependencies": [
+        "libvpx",
+        "libyuv",
+        "opus",
+        "qt5-base",
+        "qt5-translations",
+        {
+          "name": "qt5-winextras",
+          "platform": "windows"
+        }
+      ]
+    }
+  }
 }

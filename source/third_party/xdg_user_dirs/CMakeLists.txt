@@ -1,6 +1,6 @@
 #
 # Aspia Project
-# Copyright (C) 2016-2024 Dmitry Chapyshev <dmitry@aspia.ru>
+# Copyright (C) 2020 Dmitry Chapyshev <dmitry@aspia.ru>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,14 +16,9 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
-add_subdirectory(modp_b64)
-add_subdirectory(x11region)
+list(APPEND SOURCE_XDG_USER_DIRS xdg_user_dir_lookup.cc xdg_user_dir_lookup.h)
 
-if (NOT ASPIA_BUILD_ROUTER_ONLY)
-    add_subdirectory(libwebm)
-endif()
+source_group("" FILES ${SOURCE_XDG_USER_DIRS})
 
-if (LINUX)
-    add_subdirectory(xdg_user_dirs)
-endif()
-
+add_library(xdg_user_dirs STATIC ${SOURCE_XDG_USER_DIRS})
+set_target_properties(xdg_user_dirs PROPERTIES FOLDER third_party)

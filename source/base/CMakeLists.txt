@@ -86,6 +86,16 @@ if (WIN32)
         sys_info_win.cc)
 endif()
 
+if (LINUX)
+    list(APPEND SOURCE_BASE
+        applications_reader_linux.cc
+        license_reader_linux.cc
+        power_controller_linux.cc
+        smbios_reader_linux.cc
+        service_posix.cc
+        sys_info_linux.cc)
+endif()
+
 list(APPEND SOURCE_BASE_TESTS
     base64_unittest.cc
     bitset_unittest.cc
@@ -225,6 +235,10 @@ if (WIN32)
     list(APPEND SOURCE_BASE_CRYPTO crypto/os_crypt_win.cc)
 endif()
 
+if (LINUX)
+    list(APPEND SOURCE_BASE_CRYPTO crypto/os_crypt_linux.cc)
+endif()
+
 list(APPEND SOURCE_BASE_CRYPTO_TESTS
     crypto/big_num_unittest.cc
     crypto/cryptor_unittest.cc
@@ -360,6 +374,17 @@ list(APPEND SOURCE_BASE_FILES
 if (WIN32)
     list(APPEND SOURCE_BASE_FILES
         files/file_path_watcher_win.cc)
+endif()
+
+if (LINUX)
+    list(APPEND SOURCE_BASE_FILES
+        files/file_path_watcher_linux.cc)
+endif()
+
+if (UNIX)
+    list(APPEND SOURCE_BASE_FILES
+        files/file_descriptor_watcher_posix.cc
+        files/file_descriptor_watcher_posix.h)
 endif()
 
 list(APPEND SOURCE_BASE_FILES_TESTS
@@ -509,6 +534,14 @@ if (WIN32)
         strings/string_util_win.cc)
 endif()
 
+if (UNIX)
+    list(APPEND SOURCE_BASE_STRINGS
+        strings/string_util_icu.cc)
+
+    list(APPEND SOURCE_BASE_POSIX
+        posix/eintr_wrapper.h)
+endif()
+
 list(APPEND SOURCE_BASE_STRINGS_TESTS
     strings/string_number_conversions_unittest.cc
     strings/string_split_unittest.cc
@@ -625,11 +658,27 @@ source_group(settings FILES ${SOURCE_BASE_SETTINGS} ${SOURCE_BASE_SETTINGS_TESTS
 source_group(strings FILES ${SOURCE_BASE_STRINGS} ${SOURCE_BASE_STRINGS_TESTS})
 source_group(threading FILES ${SOURCE_BASE_THREADING})
 
+if (UNIX)
+    source_group(posix FILES ${SOURCE_BASE_POSIX})
+endif()
+
 if (WIN32)
     source_group(audio\\win FILES ${SOURCE_BASE_AUDIO_WIN})
     source_group(desktop\\win FILES ${SOURCE_BASE_DESKTOP_WIN} ${SOURCE_BASE_DESKTOP_WIN_TESTS})
     source_group(posix FILES ${SOURCE_BASE_POSIX})
     source_group(win FILES ${SOURCE_BASE_WIN} ${SOURCE_BASE_WIN_TESTS})
+endif()
+
+# Sound, pictures and screens. A router has no use for any of it, and on Linux it is the part that
+# would need X11 and PulseAudio, which a server does not have.
+if (ASPIA_BUILD_ROUTER_ONLY)
+    set(SOURCE_BASE_AUDIO)
+    set(SOURCE_BASE_AUDIO_WIN)
+    set(SOURCE_BASE_CODEC)
+    set(SOURCE_BASE_DESKTOP)
+    set(SOURCE_BASE_DESKTOP_WIN)
+    set(SOURCE_BASE_DESKTOP_TESTS)
+    set(SOURCE_BASE_DESKTOP_WIN_TESTS)
 endif()
 
 add_library(aspia_base STATIC
@@ -657,10 +706,18 @@ add_library(aspia_base STATIC
     ${SOURCE_BASE_WIN}
     ${SOURCE_BASE_X11})
 
+if (LINUX)
+    set(BASE_PLATFORM_LIBS ICU::uc ICU::dt xdg_user_dirs)
+endif()
+
 target_link_libraries(aspia_base PRIVATE aspia_proto ${THIRD_PARTY_LIBS} ${BASE_PLATFORM_LIBS})
 
 if (WIN32)
     set(BASE_TESTS_PLATFORM_LIBS crypt32 iphlpapi ws2_32)
+endif()
+
+if (LINUX)
+    set(BASE_TESTS_PLATFORM_LIBS ICU::uc ICU::dt xdg_user_dirs)
 endif()
 
 add_executable(aspia_base_tests

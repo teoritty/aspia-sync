@@ -61,6 +61,10 @@ if (WIN32)
     set(ROUTER_PLATFORM_LIBS comsupp crypt32 dbghelp netapi32 version)
 endif()
 
+if (LINUX)
+    set(ROUTER_PLATFORM_LIBS ICU::uc ICU::dt xdg_user_dirs)
+endif()
+
 # The shared address books, as the router keeps them. A library of its own: the router executable
 # cannot be linked into a test, and keeping this apart from the router keeps merges with upstream
 # mechanical. It depends on sqlite and base, not on the sessions or the server.
@@ -71,8 +75,15 @@ list(APPEND SOURCE_ROUTER_BOOK
     book/book_store.h)
 
 list(APPEND SOURCE_ROUTER_BOOK_TESTS
-    book/book_store_unittest.cc
-    book/sync_roundtrip_unittest.cc)
+    book/book_store_unittest.cc)
+
+# Drives the console side against the router side, so it needs the console's library - which is
+# not there when only the router is built. The store tests still run everywhere.
+if (NOT ASPIA_BUILD_ROUTER_ONLY)
+    list(APPEND SOURCE_ROUTER_BOOK_TESTS
+        book/sync_roundtrip_unittest.cc)
+    set(ROUTER_TESTS_CONSOLE_LIBS aspia_console_book)
+endif()
 
 add_library(aspia_router_book STATIC ${SOURCE_ROUTER_BOOK})
 target_link_libraries(aspia_router_book
@@ -86,7 +97,7 @@ target_link_libraries(aspia_router_book
 add_executable(aspia_router_tests ${SOURCE_ROUTER_BOOK_TESTS})
 target_link_libraries(aspia_router_tests PRIVATE
     aspia_router_book
-    aspia_console_book
+    ${ROUTER_TESTS_CONSOLE_LIBS}
     aspia_base
     aspia_proto
     GTest::gtest
