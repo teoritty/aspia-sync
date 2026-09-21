@@ -1082,80 +1082,80 @@
 <context>
     <name>console::AddressBookTab</name>
     <message>
-        <location filename="../address_book_tab.cc" line="225"/>
+        <location filename="../address_book_tab.cc" line="229"/>
         <source>Unable to open address book file &quot;%1&quot;.</source>
         <translation>Не удалось открыть файл адресной книги &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="233"/>
+        <location filename="../address_book_tab.cc" line="237"/>
         <source>Unable to read address book file &quot;%1&quot;.</source>
         <translation>Не удалось прочитать файл адресной книги &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="243"/>
+        <location filename="../address_book_tab.cc" line="247"/>
         <source>The address book file &quot;%1&quot; is corrupted or has an unknown format.</source>
         <translation>Файл адресной книги &quot;%1&quot; поврежден или имеет неизвестный формат.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="290"/>
+        <location filename="../address_book_tab.cc" line="294"/>
         <source>Unable to decrypt the address book with the specified password.</source>
         <translation>Не удалось расшифровать адресную книгу с указанным паролем.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="297"/>
+        <location filename="../address_book_tab.cc" line="301"/>
         <source>The address book file is corrupted or has an unknown format.</source>
         <translation>Файл адресной книги поврежден или имеет неизвестный формат.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="282"/>
+        <location filename="../address_book_tab.cc" line="286"/>
         <source>The address book file is encrypted with an unsupported encryption type.</source>
         <translation>Файл адресной книги зашифрован неподдерживаемым методом шифрования.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="704"/>
+        <location filename="../address_book_tab.cc" line="708"/>
         <source>Are you sure you want to delete computer group &quot;%1&quot; and all child items?</source>
         <translation>Вы действительно хотите удалить группу компьютеров &quot;%1&quot; и все дочерние элементы?</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="708"/>
-        <location filename="../address_book_tab.cc" line="746"/>
+        <location filename="../address_book_tab.cc" line="712"/>
+        <location filename="../address_book_tab.cc" line="750"/>
         <source>Confirmation</source>
         <translation>Подтверждение</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="712"/>
-        <location filename="../address_book_tab.cc" line="750"/>
+        <location filename="../address_book_tab.cc" line="716"/>
+        <location filename="../address_book_tab.cc" line="754"/>
         <source>Yes</source>
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="713"/>
-        <location filename="../address_book_tab.cc" line="751"/>
+        <location filename="../address_book_tab.cc" line="717"/>
+        <location filename="../address_book_tab.cc" line="755"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="742"/>
+        <location filename="../address_book_tab.cc" line="746"/>
         <source>Are you sure you want to delete computer &quot;%1&quot;?</source>
         <translation>Вы действительно хотите удалить компьютер &quot;%1&quot;?</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1101"/>
+        <location filename="../address_book_tab.cc" line="1105"/>
         <source>Online</source>
         <translation>В сети</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1106"/>
+        <location filename="../address_book_tab.cc" line="1110"/>
         <source>Offline</source>
         <translation>Не в сети</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1588"/>
+        <location filename="../address_book_tab.cc" line="1639"/>
         <source>Save Address Book</source>
         <translation>Сохранение адресной книги</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1590"/>
+        <location filename="../address_book_tab.cc" line="1641"/>
         <source>Aspia Address Book (*.aab)</source>
         <translation>Адресная книга Aspia (*.aab)</translation>
     </message>
@@ -1164,28 +1164,28 @@
         <translation type="vanished">Не удалось создать или открыть файл адресной книги.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1615"/>
+        <location filename="../address_book_tab.cc" line="1666"/>
         <source>Unable to write address book file.</source>
         <translation>Не удалось записать файл адресной книги.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1646"/>
+        <location filename="../address_book_tab.cc" line="1697"/>
         <source>Root Group</source>
         <translation>Корневая группа</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1658"/>
-        <location filename="../address_book_tab.cc" line="1673"/>
+        <location filename="../address_book_tab.cc" line="1709"/>
+        <location filename="../address_book_tab.cc" line="1724"/>
         <source>Warning</source>
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1660"/>
+        <location filename="../address_book_tab.cc" line="1711"/>
         <source>Could not open address book</source>
         <translation>Не удалось открыть адресную книгу</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1675"/>
+        <location filename="../address_book_tab.cc" line="1726"/>
         <source>Failed to save address book</source>
         <translation>Не удалось сохранить адресную книгу</translation>
     </message>
