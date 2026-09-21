@@ -247,6 +247,39 @@ void showHelp()
 //
 // This is what makes a test stand possible: a service has to be installed, needs administrator
 // rights, and holds the executable open so that the next build cannot replace it.
+// The loop of the console mode, so that Ctrl+C can reach it. Set only while that mode runs.
+std::shared_ptr<base::TaskRunner> g_console_task_runner;
+
+#if defined(OS_WIN)
+//--------------------------------------------------------------------------------------------------
+BOOL WINAPI consoleCtrlHandler(DWORD type)
+{
+    switch (type)
+    {
+        case CTRL_C_EVENT:
+        case CTRL_BREAK_EVENT:
+        case CTRL_CLOSE_EVENT:
+            break;
+
+        default:
+            return FALSE;
+    }
+
+    std::shared_ptr<base::TaskRunner> task_runner = g_console_task_runner;
+    if (!task_runner)
+        return FALSE;
+
+    std::cout << "Stopping the router..." << std::endl;
+
+    // Asking the loop to finish rather than ending the process here. The handler runs on a thread
+    // of its own, and everything the router is holding - the database above all - is closed by the
+    // unwinding that follows, which killing the process would skip.
+    task_runner->postQuit();
+    return TRUE;
+}
+#endif // defined(OS_WIN)
+
+//--------------------------------------------------------------------------------------------------
 void runAsConsole()
 {
     LOG(LS_INFO) << "Starting the router in console mode";
@@ -261,8 +294,20 @@ void runAsConsole()
         return;
     }
 
+#if defined(OS_WIN)
+    g_console_task_runner = task_runner;
+    SetConsoleCtrlHandler(consoleCtrlHandler, TRUE);
+#endif
+
     std::cout << "Router is running. Press Ctrl+C to stop." << std::endl;
     message_loop.run();
+
+#if defined(OS_WIN)
+    SetConsoleCtrlHandler(consoleCtrlHandler, FALSE);
+    g_console_task_runner.reset();
+#endif
+
+    LOG(LS_INFO) << "The router in console mode has stopped";
 }
 
 #if defined(OS_WIN)
