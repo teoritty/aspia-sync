@@ -63,6 +63,11 @@ void SyncDialog::buildUi()
 
     QFormLayout* form = new QFormLayout();
     state_label_ = new QLabel(state_page);
+
+    // What is said here when it stops is a sentence, not a word, and it is the sentence that tells
+    // the person what to do about it. Cut off at the edge of the window it would say nothing.
+    state_label_->setWordWrap(true);
+
     pending_label_ = new QLabel(state_page);
 
     form->addRow(tr("State:"), state_label_);

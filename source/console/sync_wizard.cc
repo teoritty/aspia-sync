@@ -423,9 +423,11 @@ void SyncWizard::onBookCreated(const std::string& guid, const std::string& error
 //--------------------------------------------------------------------------------------------------
 void SyncWizard::onBookConnected()
 {
-    // Both connections report here. The administrator one is only ever opened to create a book, so
-    // that is what it does as soon as it is up.
-    if (admin_controller_ && !pending_book_name_.isEmpty())
+    // Both connections report here, and there is no telling them apart from the call itself, so
+    // the one that is up is asked. Without that, the ordinary connection coming back - after the
+    // router was restarted, say - would set the administrator one to work before it had finished
+    // connecting, and the request would be dropped on the floor.
+    if (admin_controller_ && admin_controller_->isConnected() && !pending_book_name_.isEmpty())
     {
         admin_controller_->requestCreateBook(pending_book_name_.toStdString(),
                                              pending_salt_.toStdString(),
