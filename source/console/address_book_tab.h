@@ -162,6 +162,7 @@ protected:
     void onOnlineCheckerFinished() final;
 
 private slots:
+    void onSearchTextChanged(const QString& text);
     void onGroupItemClicked(QTreeWidgetItem* item, int column);
     void onGroupContextMenu(const QPoint& point);
     void onGroupItemCollapsed(QTreeWidgetItem* item);
@@ -181,6 +182,21 @@ private:
     QByteArray saveState();
     void restoreState(const QByteArray& state);
     void updateComputerList(ComputerGroupItem* computer_group);
+
+    // Fills the list from the whole book instead of from one folder. A record is shown when the
+    // text is somewhere in its name, in its address, or in the name of any folder it sits under -
+    // the last of those being the point of it: people remember "somewhere in accounting" far
+    // better than they remember a machine name.
+    void showSearchResults(const QString& text);
+
+    // Whichever of the two the list should be showing now.
+    void refreshComputerList();
+
+    // What the person typed, or empty when they are not searching.
+    QString search_text_;
+
+    static const int kFolderColumnWidth = 260;
+
     bool saveToFile(const QString& file_path);
     ComputerGroupItem* rootComputerGroupItem();
 

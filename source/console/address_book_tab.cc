@@ -41,6 +41,7 @@
 
 #include <QApplication>
 #include <QFileDialog>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
 #include <QTimer>
@@ -161,6 +162,18 @@ AddressBookTab::AddressBookTab(const QString& file_path,
 
     connect(ui.tree_computer, &ComputerTree::itemDoubleClicked,
             this, &AddressBookTab::onComputerItemDoubleClicked);
+
+    connect(ui.edit_search, &QLineEdit::textChanged,
+            this, &AddressBookTab::onSearchTextChanged);
+
+    // The folder of a record is worth saying only when the records come from more than one, which
+    // is to say only while searching.
+    //
+    // The width is set before it is hidden because hiding remembers the width to put back later,
+    // and a column that has never been given one remembers nothing: it would come back the moment
+    // somebody searched, and be nought pixels wide.
+    ui.tree_computer->setColumnWidth(ComputerItem::COLUMN_INDEX_FOLDER, kFolderColumnWidth);
+    ui.tree_computer->setColumnHidden(ComputerItem::COLUMN_INDEX_FOLDER, true);
 
     // A book that was joined before stays joined. It is put off until the event loop runs so that
     // whoever made this tab has finished connecting to its signals first, and hears about the
@@ -1579,6 +1592,13 @@ void AddressBookTab::restoreState(const QByteArray& state)
 //--------------------------------------------------------------------------------------------------
 void AddressBookTab::updateComputerList(ComputerGroupItem* computer_group)
 {
+    if (!search_text_.isEmpty())
+    {
+        // A search is on, so the list is not about the folder that was just selected.
+        showSearchResults(search_text_);
+        return;
+    }
+
     if (online_checker_)
     {
         LOG(LS_INFO) << "Destroy online checker";
@@ -1589,6 +1609,98 @@ void AddressBookTab::updateComputerList(ComputerGroupItem* computer_group)
         std::unique_ptr<QTreeWidgetItem> item_deleter(ui.tree_computer->takeTopLevelItem(i));
 
     ui.tree_computer->addTopLevelItems(computer_group->ComputerList());
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::showSearchResults(const QString& text)
+{
+    if (online_checker_)
+    {
+        LOG(LS_INFO) << "Destroy online checker";
+        online_checker_.reset();
+    }
+
+    for (int i = ui.tree_computer->topLevelItemCount() - 1; i >= 0; --i)
+        std::unique_ptr<QTreeWidgetItem> item_deleter(ui.tree_computer->takeTopLevelItem(i));
+
+    ComputerGroupItem* root_item = rootComputerGroupItem();
+    if (!root_item)
+        return;
+
+    QList<QTreeWidgetItem*> found;
+
+    // |path| is what is shown in the folder column, and |matched_here| says that a folder along
+    // the way already matched - everything under it then counts, which is what makes searching by
+    // folder name mean "show me what is in there".
+    std::function<void(ComputerGroupItem*, const QString&, bool)> walk =
+        [&](ComputerGroupItem* group_item, const QString& path, bool matched_here)
+    {
+        for (QTreeWidgetItem* item : group_item->ComputerList())
+        {
+            ComputerItem* computer_item = static_cast<ComputerItem*>(item);
+            const proto::address_book::Computer* computer = computer_item->computer();
+
+            const bool matches = matched_here ||
+                QString::fromStdString(computer->name()).contains(text, Qt::CaseInsensitive) ||
+                QString::fromStdString(computer->address()).contains(text, Qt::CaseInsensitive);
+
+            if (!matches)
+            {
+                delete computer_item;
+                continue;
+            }
+
+            computer_item->setText(ComputerItem::COLUMN_INDEX_FOLDER,
+                                   path.isEmpty() ? parentName(group_item) : path);
+            found.push_back(computer_item);
+        }
+
+        for (int i = 0; i < group_item->childCount(); ++i)
+        {
+            ComputerGroupItem* child = dynamic_cast<ComputerGroupItem*>(group_item->child(i));
+            if (!child)
+                continue;
+
+            const QString name = QString::fromStdString(child->computerGroup()->name());
+            const QString child_path = path.isEmpty() ? name : path + QLatin1Char('/') + name;
+
+            walk(child, child_path, matched_here || name.contains(text, Qt::CaseInsensitive));
+        }
+    };
+
+    walk(root_item, QString(), false);
+
+    ui.tree_computer->addTopLevelItems(found);
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::refreshComputerList()
+{
+    if (!search_text_.isEmpty())
+    {
+        showSearchResults(search_text_);
+        return;
+    }
+
+    ComputerGroupItem* current_item = dynamic_cast<ComputerGroupItem*>(ui.tree_group->currentItem());
+    if (current_item)
+        updateComputerList(current_item);
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::onSearchTextChanged(const QString& text)
+{
+    search_text_ = text.trimmed();
+
+    const bool searching = !search_text_.isEmpty();
+
+    ui.tree_computer->setColumnHidden(ComputerItem::COLUMN_INDEX_FOLDER, !searching);
+
+    // And again here, for a book whose saved layout was written before this column existed.
+    if (searching && ui.tree_computer->columnWidth(ComputerItem::COLUMN_INDEX_FOLDER) <= 0)
+        ui.tree_computer->setColumnWidth(ComputerItem::COLUMN_INDEX_FOLDER, kFolderColumnWidth);
+
+    refreshComputerList();
 }
 
 //--------------------------------------------------------------------------------------------------

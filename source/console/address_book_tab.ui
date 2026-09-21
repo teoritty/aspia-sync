@@ -62,7 +62,41 @@
        </property>
       </column>
      </widget>
-     <widget class="console::ComputerTree" name="tree_computer">
+     <widget class="QWidget" name="computer_panel">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>1</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <layout class="QVBoxLayout" name="computer_layout">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <property name="spacing">
+        <number>2</number>
+       </property>
+       <item>
+        <widget class="QLineEdit" name="edit_search">
+         <property name="clearButtonEnabled">
+          <bool>true</bool>
+         </property>
+         <property name="placeholderText">
+          <string>Search by name, folder or ID</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="console::ComputerTree" name="tree_computer">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>1</horstretch>
@@ -91,7 +125,7 @@
        <bool>true</bool>
       </property>
       <property name="columnCount">
-       <number>6</number>
+       <number>7</number>
       </property>
       <column>
        <property name="text">
@@ -123,6 +157,14 @@
         <string>Status</string>
        </property>
       </column>
+      <column>
+       <property name="text">
+        <string>Folder</string>
+       </property>
+      </column>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </widget>
    </item>

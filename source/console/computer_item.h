@@ -43,7 +43,11 @@ public:
         COLUMN_INDEX_COMMENT   = 2,
         COLUMN_INDEX_CREATED   = 3,
         COLUMN_INDEX_MODIFIED  = 4,
-        COLUMN_INDEX_STATUS    = 5
+        COLUMN_INDEX_STATUS    = 5,
+
+        // Where the record lives. Empty except in the results of a search, which draws records
+        // from the whole book and so has to say which folder each one came from.
+        COLUMN_INDEX_FOLDER    = 6
     };
 
     proto::address_book::Computer* computer() { return computer_; }
