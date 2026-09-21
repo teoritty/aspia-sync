@@ -29,6 +29,7 @@
 #include "console/address_book_dialog.h"
 #include "console/book/entry_guid.h"
 #include "console/book/flat_book.h"
+#include "console/book/search.h"
 #include "console/book/sync_key.h"
 #include "console/computer_dialog.h"
 #include "console/computer_factory.h"
@@ -46,7 +47,9 @@
 #include <QMessageBox>
 #include <QTimer>
 
+#include <algorithm>
 #include <functional>
+#include <vector>
 
 namespace console {
 
@@ -1651,24 +1654,34 @@ void AddressBookTab::showSearchResults(const QString& text)
     if (!root_item)
         return;
 
-    QList<QTreeWidgetItem*> found;
+    struct Found
+    {
+        int score;
+        QString name;
+        ComputerItem* item;
+    };
 
-    // |path| is what is shown in the folder column, and |matched_here| says that a folder along
-    // the way already matched - everything under it then counts, which is what makes searching by
-    // folder name mean "show me what is in there".
-    std::function<void(ComputerGroupItem*, const QString&, bool)> walk =
-        [&](ComputerGroupItem* group_item, const QString& path, bool matched_here)
+    std::vector<Found> found;
+    const std::u16string query = text.toStdU16String();
+
+    // |path| is what is shown in the folder column and searched along with the rest: a folder's
+    // name finds everything in it, and a word of it narrows the rest of the query down to it.
+    std::function<void(ComputerGroupItem*, const QString&)> walk =
+        [&](ComputerGroupItem* group_item, const QString& path)
     {
         for (QTreeWidgetItem* item : group_item->ComputerList())
         {
             ComputerItem* computer_item = static_cast<ComputerItem*>(item);
             const proto::address_book::Computer* computer = computer_item->computer();
 
-            const bool matches = matched_here ||
-                QString::fromStdString(computer->name()).contains(text, Qt::CaseInsensitive) ||
-                QString::fromStdString(computer->address()).contains(text, Qt::CaseInsensitive);
+            SearchFields fields;
+            fields.name = QString::fromStdString(computer->name()).toStdU16String();
+            fields.address = QString::fromStdString(computer->address()).toStdU16String();
+            fields.comment = QString::fromStdString(computer->comment()).toStdU16String();
+            fields.folders = path.toStdU16String();
 
-            if (!matches)
+            const int score = searchScore(query, fields);
+            if (score == 0)
             {
                 delete computer_item;
                 continue;
@@ -1676,7 +1689,7 @@ void AddressBookTab::showSearchResults(const QString& text)
 
             computer_item->setText(ComputerItem::COLUMN_INDEX_FOLDER,
                                    path.isEmpty() ? parentName(group_item) : path);
-            found.push_back(computer_item);
+            found.push_back({ score, QString::fromStdString(computer->name()), computer_item });
         }
 
         for (int i = 0; i < group_item->childCount(); ++i)
@@ -1686,15 +1699,29 @@ void AddressBookTab::showSearchResults(const QString& text)
                 continue;
 
             const QString name = QString::fromStdString(child->computerGroup()->name());
-            const QString child_path = path.isEmpty() ? name : path + QLatin1Char('/') + name;
-
-            walk(child, child_path, matched_here || name.contains(text, Qt::CaseInsensitive));
+            walk(child, path.isEmpty() ? name : path + QLatin1Char('/') + name);
         }
     };
 
-    walk(root_item, QString(), false);
+    walk(root_item, QString());
 
-    ui.tree_computer->addTopLevelItems(found);
+    // The best match first. Between equals, the shorter name, which leaves less that was not asked
+    // for, and then the alphabet, so that the order does not change from one keystroke to the next.
+    std::stable_sort(found.begin(), found.end(), [](const Found& a, const Found& b)
+    {
+        if (a.score != b.score)
+            return a.score > b.score;
+        if (a.name.size() != b.name.size())
+            return a.name.size() < b.name.size();
+        return QString::localeAwareCompare(a.name, b.name) < 0;
+    });
+
+    QList<QTreeWidgetItem*> items;
+    items.reserve(static_cast<int>(found.size()));
+    for (const Found& entry : found)
+        items.push_back(entry.item);
+
+    ui.tree_computer->addTopLevelItems(items);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1719,6 +1746,10 @@ void AddressBookTab::onSearchTextChanged(const QString& text)
     const bool searching = !search_text_.isEmpty();
 
     ui.tree_computer->setColumnHidden(ComputerItem::COLUMN_INDEX_FOLDER, !searching);
+
+    // Search results come in the order of how well they match, and sorting by a column would undo
+    // exactly that. It comes back, by the same column as before, once the search is cleared.
+    ui.tree_computer->setSortingEnabled(!searching);
 
     // And again here, for a book whose saved layout was written before this column existed.
     if (searching && ui.tree_computer->columnWidth(ComputerItem::COLUMN_INDEX_FOLDER) <= 0)

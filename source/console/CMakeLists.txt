@@ -138,6 +138,8 @@ list(APPEND SOURCE_CONSOLE_BOOK
     book/local_changes.h
     book/merge.cc
     book/merge.h
+    book/search.cc
+    book/search.h
     book/sync_engine.cc
     book/sync_engine.h
     book/sync_key.cc
@@ -149,6 +151,7 @@ list(APPEND SOURCE_CONSOLE_BOOK_TESTS
     book/flat_book_unittest.cc
     book/local_changes_unittest.cc
     book/merge_unittest.cc
+    book/search_unittest.cc
     book/sync_engine_unittest.cc
     book/sync_key_unittest.cc)
 
