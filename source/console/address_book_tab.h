@@ -80,8 +80,12 @@ public:
     // derived from; it is not written to the file.
     // |salt| and |verifier| are binary and are carried as such: read through QString they would
     // be taken for UTF-8 and come back as different bytes.
+    //
+    // |replace_local| empties the book first, so that what it holds is exactly the shared book.
+    // That is how everybody but the first person joins: see SyncWizard::buildPreview for why the
+    // two are never merged.
     bool enableSync(const QString& book_guid, const QByteArray& salt, const QByteArray& verifier,
-                    const QString& passphrase);
+                    const QString& passphrase, bool replace_local);
 
     // Turns it off. The book stays exactly as it is and becomes an ordinary local file again.
     void disableSync();

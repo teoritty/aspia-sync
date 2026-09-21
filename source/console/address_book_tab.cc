@@ -1179,7 +1179,8 @@ QString AddressBookTab::syncBookGuid() const
 
 //--------------------------------------------------------------------------------------------------
 bool AddressBookTab::enableSync(const QString& book_guid, const QByteArray& salt,
-                                const QByteArray& verifier, const QString& passphrase)
+                                const QByteArray& verifier, const QString& passphrase,
+                                bool replace_local)
 {
     const std::string key = deriveSyncKey(passphrase.toStdString(), salt.toStdString());
     if (key.empty())
@@ -1204,6 +1205,20 @@ bool AddressBookTab::enableSync(const QString& book_guid, const QByteArray& salt
         return false;
     }
 
+    if (replace_local)
+    {
+        // What is here now is set aside rather than sent: it is already in the copy made of the
+        // file, and sending it would put every machine the department shares into the book a
+        // second time under a different identity. The root stays - it is this person's own.
+        proto::address_book::ComputerGroup* root = data_.mutable_root_group();
+        cleanupComputerGroup(root);
+        root->clear_computer();
+        root->clear_computer_group();
+    }
+
+    // Whatever this file remembers about some earlier book means nothing for this one.
+    data_.mutable_sync()->clear_entry();
+
     // Every record needs an identity before it can be sent anywhere.
     ensureEntryGuids(data_.mutable_root_group());
 
@@ -1221,6 +1236,10 @@ bool AddressBookTab::enableSync(const QString& book_guid, const QByteArray& salt
 
     setChanged(true);
     autoSave();
+
+    // The tree was emptied under the window, and the window points into it.
+    if (replace_local)
+        reloadAll();
 
     emit sig_syncStatusChanged();
     return true;

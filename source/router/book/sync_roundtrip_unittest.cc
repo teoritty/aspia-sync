@@ -128,6 +128,15 @@ public:
         return false;
     }
 
+    // What joining does for everybody but the first person: the book is emptied, so that what it
+    // ends up holding is exactly the shared book.
+    void replaceWithShared()
+    {
+        data_.mutable_root_group()->clear_computer();
+        data_.mutable_root_group()->clear_computer_group();
+        data_.mutable_sync()->clear_entry();
+    }
+
     bool resolve(const std::string& guid, bool keep_local)
     {
         return sync_->resolveConflict(guid, keep_local, &data_);
@@ -610,4 +619,53 @@ TEST_F(SyncRoundtripTest, the_window_is_told_whenever_the_tree_is_replaced)
     const int after = petya_->updates();
     petya_->exchange();
     EXPECT_EQ(petya_->updates(), after) << "nothing changed and the window was redrawn anyway";
+}
+
+//--------------------------------------------------------------------------------------------------
+// Why joining never merges. Two people have kept the same machine in their own books, and nothing
+// but the address says it is the same one: each copy has an identity of its own. Sent as they are,
+// both arrive, and the department has the machine twice.
+TEST_F(SyncRoundtripTest, two_books_sent_as_they_are_put_the_same_machine_in_twice)
+{
+    vanya_->addComputer("server", "12345");
+    petya_->addComputer("Server", "12345");
+
+    vanya_->exchange();
+    petya_->exchange();
+
+    EXPECT_EQ(petya_->computerCount(), 2);
+}
+
+//--------------------------------------------------------------------------------------------------
+// And what joining does instead. The first person's book becomes the shared one; everybody after
+// takes it as it is, and nothing is doubled however much their own books overlapped.
+TEST_F(SyncRoundtripTest, joining_by_taking_the_shared_book_leaves_nothing_doubled)
+{
+    vanya_->addComputer("server", "12345");
+    vanya_->addComputer("reception", "54321");
+    vanya_->exchange();
+
+    petya_->addComputer("Server", "12345");
+    petya_->addComputer("laptop", "999");
+    petya_->replaceWithShared();
+    petya_->exchange();
+
+    ASSERT_EQ(petya_->computerCount(), 2);
+    EXPECT_TRUE(petya_->findComputer("server"));
+    EXPECT_TRUE(petya_->findComputer("reception"));
+
+    // Nothing of Petya's went to the router either.
+    std::vector<router::BookEntry> entries;
+    ASSERT_TRUE(store_->entriesSince(kBookGuid, 0, 0, 0, &entries));
+
+    size_t alive = 0;
+    for (const router::BookEntry& entry : entries)
+    {
+        if (!entry.deleted)
+            ++alive;
+    }
+    EXPECT_EQ(alive, 2u);
+
+    vanya_->exchange();
+    EXPECT_EQ(vanya_->computerCount(), 2);
 }

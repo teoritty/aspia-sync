@@ -19,7 +19,6 @@
 #include "console/sync_wizard.h"
 
 #include "base/logging.h"
-#include "console/book/bootstrap.h"
 #include "console/book/flat_book.h"
 #include "console/book/sync_key.h"
 #include "proto/router_book.pb.h"
@@ -48,6 +47,47 @@ enum Step
     STEP_CONFIRM,
     STEP_COUNT
 };
+
+//--------------------------------------------------------------------------------------------------
+bool isEmptyBook(const proto::address_book::ComputerGroup& root)
+{
+    return root.computer_size() == 0 && root.computer_group_size() == 0;
+}
+
+//--------------------------------------------------------------------------------------------------
+int countComputers(const proto::address_book::ComputerGroup& group)
+{
+    int count = group.computer_size();
+    for (int i = 0; i < group.computer_group_size(); ++i)
+        count += countComputers(group.computer_group(i));
+    return count;
+}
+
+//--------------------------------------------------------------------------------------------------
+// The contents of |group|, folders first, the way the book itself shows them.
+void addGroupToTree(const proto::address_book::ComputerGroup& group, QTreeWidgetItem* parent)
+{
+    for (int i = 0; i < group.computer_group_size(); ++i)
+    {
+        const proto::address_book::ComputerGroup& child = group.computer_group(i);
+
+        QTreeWidgetItem* item = new QTreeWidgetItem(parent);
+        item->setIcon(0, QIcon(QStringLiteral(":/img/folder.png")));
+        item->setText(0, QString::fromStdString(child.name()));
+
+        addGroupToTree(child, item);
+    }
+
+    for (int i = 0; i < group.computer_size(); ++i)
+    {
+        const proto::address_book::Computer& computer = group.computer(i);
+
+        QTreeWidgetItem* item = new QTreeWidgetItem(parent);
+        item->setIcon(0, QIcon(QStringLiteral(":/img/computer.png")));
+        item->setText(0, QString::fromStdString(computer.name()));
+        item->setText(1, QString::fromStdString(computer.address()));
+    }
+}
 
 } // namespace
 
@@ -118,17 +158,13 @@ void SyncWizard::buildUi()
     QWidget* preview_page = new QWidget(this);
     QVBoxLayout* preview_layout = new QVBoxLayout(preview_page);
 
-    QLabel* preview_hint = new QLabel(
-        tr("Computers are recognized by the address they are reached at, so the same machine is "
-           "found even where it is named differently. Nothing has been changed yet."),
-        preview_page);
-    preview_hint->setWordWrap(true);
-    preview_layout->addWidget(preview_hint);
+    preview_hint_ = new QLabel(preview_page);
+    preview_hint_->setWordWrap(true);
+    preview_layout->addWidget(preview_hint_);
 
     preview_tree_ = new QTreeWidget(preview_page);
-    preview_tree_->setColumnCount(3);
-    preview_tree_->setHeaderLabels(
-        QStringList() << tr("In this book") << tr("In the shared book") << tr("Address"));
+    preview_tree_->setColumnCount(2);
+    preview_tree_->setHeaderLabels(QStringList() << tr("Name") << tr("Address / ID"));
     preview_tree_->setRootIsDecorated(true);
     preview_tree_->header()->setStretchLastSection(true);
     preview_layout->addWidget(preview_tree_);
@@ -285,57 +321,64 @@ void SyncWizard::startPullForPreview()
 //--------------------------------------------------------------------------------------------------
 void SyncWizard::buildPreview()
 {
-    // The records were opened as they arrived; here they are put back into a tree, because that
-    // is what the matching works on and what a person recognizes.
+    // The records were opened as they arrived; here they are put back into a tree, because that is
+    // what a person recognizes.
     remote_root_.Clear();
     rebuildBook(received_, &remote_root_, nullptr);
 
-    const BootstrapPlan plan = planBootstrap(local_root_, remote_root_);
+    // Joining never merges two books into one.
+    //
+    // Seven copies kept apart for years hold the same machine under seven names in seven folders,
+    // and no rule tells reliably which of them are the same: the address comes closest, and even
+    // that repeats legitimately under different session types. A wrong guess made here would
+    // spoil the book for everybody at the same moment. So the first person to join fills the
+    // shared book with theirs, and everybody after takes the shared book as it is. Whatever only
+    // they had stays in the copy made of their file.
+    replaces_local_ = !isEmptyBook(remote_root_);
 
+    const int remote_count = countComputers(remote_root_);
+    const int local_count = countComputers(local_root_);
+
+    // What is shown is what the book will look like afterwards - which is the only question a
+    // person has at this point.
     preview_tree_->clear();
+    addGroupToTree(replaces_local_ ? remote_root_ : local_root_,
+                   preview_tree_->invisibleRootItem());
+    preview_tree_->expandToDepth(0);
 
-    QTreeWidgetItem* matched = new QTreeWidgetItem(preview_tree_);
-    matched->setText(0, tr("The same computers (%1)").arg(plan.matched.size()));
-    matched->setFirstColumnSpanned(true);
-
-    for (const BootstrapPair& pair : plan.matched)
+    if (replaces_local_)
     {
-        QTreeWidgetItem* item = new QTreeWidgetItem(matched);
-        item->setText(0, QString::fromStdString(pair.local_name));
-        item->setText(1, QString::fromStdString(pair.remote_name));
-        item->setText(2, QString::fromStdString(pair.address));
+        preview_hint_->setText(
+            tr("This is the shared book. After joining, this address book will look like this. "
+               "Nothing has been changed yet."));
 
-        if (pair.names_differ)
-        {
-            // Keeping one name means losing the other, which is the only thing here worth
-            // reading carefully.
-            item->setToolTip(1, tr("The names differ. The shared name will be used."));
-            item->setForeground(1, QBrush(QColor(0xB0, 0x60, 0x00)));
-        }
+        summary_label_->setText(
+            tr("Joining the book \"%1\".\n\n"
+               "The shared book already holds %2 computer(s). This address book will be replaced "
+               "with it, and the %3 computer(s) in it now will be taken out.\n\n"
+               "Nothing is lost: a copy of the current file is made next to it before anything is "
+               "written. It opens as an ordinary address book, and anything only you had can be "
+               "moved over from it with export and import.\n\n"
+               "Synchronization can be switched off later; the book stays as it is.")
+            .arg(book_combo_->currentText())
+            .arg(remote_count)
+            .arg(local_count));
     }
+    else
+    {
+        preview_hint_->setText(
+            tr("The shared book is empty, so this address book becomes it. This is what everybody "
+               "who joins after you will get. Nothing has been changed yet."));
 
-    QTreeWidgetItem* added = new QTreeWidgetItem(preview_tree_);
-    added->setText(0, tr("Only in this book, will be added (%1)").arg(plan.only_local.size()));
-    added->setFirstColumnSpanned(true);
-
-    QTreeWidgetItem* ambiguous = new QTreeWidgetItem(preview_tree_);
-    ambiguous->setText(0, tr("Could not be decided, left as they are (%1)")
-                       .arg(plan.ambiguous.size()));
-    ambiguous->setFirstColumnSpanned(true);
-
-    matched->setExpanded(true);
-
-    summary_label_->setText(
-        tr("Joining the book \"%1\".\n\n"
-           "  %2 computers are already there and will be kept as one record.\n"
-           "  %3 computers from this machine will be added for everybody.\n"
-           "  %4 could not be decided and stay as they are.\n\n"
-           "A copy of the current address book file is made before anything is written.\n"
-           "Synchronization can be switched off later; the book stays as it is.")
-        .arg(book_combo_->currentText())
-        .arg(plan.matched.size())
-        .arg(plan.only_local.size())
-        .arg(plan.ambiguous.size()));
+        summary_label_->setText(
+            tr("Joining the book \"%1\".\n\n"
+               "The shared book is empty, so this address book becomes it: its %2 computer(s) "
+               "will be sent to everybody who joins after you.\n\n"
+               "A copy of the current file is made next to it before anything is written.\n\n"
+               "Synchronization can be switched off later; the book stays as it is.")
+            .arg(book_combo_->currentText())
+            .arg(local_count));
+    }
 
     waiting_ = false;
     setStatus(QString());

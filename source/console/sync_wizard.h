@@ -74,6 +74,10 @@ public:
 
     QString passphrase() const { return passphrase_; }
 
+    // Whether joining replaces what is in this address book with the shared book. It does whenever
+    // the shared book already holds something; only the first person to join fills it with theirs.
+    bool replacesLocal() const { return replaces_local_; }
+
 protected:
     // BookController::Delegate implementation.
     void onBookConnected() final;
@@ -116,8 +120,11 @@ private:
     QComboBox* book_combo_ = nullptr;
     QLineEdit* passphrase_edit_ = nullptr;
     QLabel* status_label_ = nullptr;
+    QLabel* preview_hint_ = nullptr;
     QTreeWidget* preview_tree_ = nullptr;
     QLabel* summary_label_ = nullptr;
+
+    bool replaces_local_ = false;
     QPushButton* create_button_ = nullptr;
     QPushButton* back_button_ = nullptr;
     QPushButton* next_button_ = nullptr;

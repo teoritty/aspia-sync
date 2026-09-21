@@ -42,7 +42,10 @@
 #include <QCloseEvent>
 #include <QDesktopServices>
 #include <QFileDialog>
+#include <QDateTime>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QSystemTrayIcon>
 
@@ -450,19 +453,33 @@ namespace {
 // A copy of the address book before it is joined to a shared one. Joining is the one step here
 // that cannot be undone by switching synchronization off again, so there has to be something to
 // go back to.
-bool backupBeforeSync(const QString& file_path)
+// Returns where the copy went, or an empty string when none could be made.
+QString backupBeforeSync(const QString& file_path)
 {
     if (file_path.isEmpty())
-        return false;
+        return QString();
 
-    const QString backup_path = file_path + QLatin1String(".before-sync");
+    // Named as an address book, so that it opens like one: joining can empty the book, and this
+    // copy is then the way back to whatever only this person had.
+    const QFileInfo info(file_path);
+    const QString base = info.absolutePath() + QLatin1Char('/') + info.completeBaseName() +
+        QLatin1String(".before-sync");
 
-    // An older copy is not overwritten: it is from the last time somebody did this, and that is
-    // exactly the state worth keeping.
+    QString backup_path = base + QLatin1String(".aab");
+
+    // A copy is made every time, and an older one is never written over: it is from the last time
+    // somebody did this, and may be the only place something is still kept.
     if (QFile::exists(backup_path))
-        return true;
+    {
+        backup_path = base + QLatin1Char('-') +
+            QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss")) +
+            QLatin1String(".aab");
+    }
 
-    return QFile::copy(file_path, backup_path);
+    if (!QFile::copy(file_path, backup_path))
+        return QString();
+
+    return backup_path;
 }
 
 } // namespace
@@ -509,7 +526,8 @@ void MainWindow::onSync()
     if (wizard.exec() != QDialog::Accepted)
         return;
 
-    if (!backupBeforeSync(tab->filePath()))
+    const QString backup_path = backupBeforeSync(tab->filePath());
+    if (backup_path.isEmpty())
     {
         QMessageBox::warning(
             this,
@@ -519,12 +537,27 @@ void MainWindow::onSync()
         return;
     }
 
-    if (!tab->enableSync(wizard.bookGuid(), wizard.salt(), wizard.verifier(), wizard.passphrase()))
+    if (!tab->enableSync(wizard.bookGuid(), wizard.salt(), wizard.verifier(), wizard.passphrase(),
+                         wizard.replacesLocal()))
     {
         QMessageBox::warning(
             this,
             tr("Confirmation"),
             tr("Synchronization could not be turned on."),
+            QMessageBox::Ok);
+        return;
+    }
+
+    if (wizard.replacesLocal())
+    {
+        // Said once, at the moment it matters, with the one thing a person needs from it.
+        QMessageBox::information(
+            this,
+            tr("Synchronization"),
+            tr("This address book now holds the shared book.\n\n"
+               "What it held before is kept here:\n%1\n\n"
+               "It opens as an ordinary address book.")
+                .arg(QDir::toNativeSeparators(backup_path)),
             QMessageBox::Ok);
     }
 }
