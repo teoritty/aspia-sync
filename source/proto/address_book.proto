@@ -202,6 +202,16 @@ message SyncState
     int64 last_pulled_revision = 3;
 
     repeated SyncEntryState entry = 4;
+
+    // The key the records are sealed with, so that opening the book again resumes where it left
+    // off instead of asking for the shared passphrase every morning.
+    //
+    // It lives inside the encrypted part of the address book file, under the password of the book
+    // itself, and never leaves this machine. Keeping it here gives away nothing that the file did
+    // not already hold: the same file carries the password of every computer in the book in the
+    // clear once it is open. What the key protects is the router, which is reachable from the
+    // internet and holds records it must not be able to read - and it still cannot.
+    bytes sync_key = 5;
 }
 
 message File

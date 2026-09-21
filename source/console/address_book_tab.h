@@ -207,6 +207,16 @@ private:
     bool sync_connected_ = false;
     bool sync_stopped_ = false;
 
+    // Picks synchronization back up for a book that was already joined, which is what happens
+    // every time such a book is opened. Without it the book says it is synchronized, shows no
+    // error, and quietly stops talking to anybody until somebody joins it again.
+    void resumeSyncIfEnabled();
+
+    // One edit made by the person: written to disk and sent on. Not to be confused with
+    // setChanged, which every change passes through, including what arrives from the router.
+    void noteEdited();
+
+    void startSync(const std::string& key, const client::RouterConfig& router);
     void startSyncIfEnabled();
     void autoSave();
 

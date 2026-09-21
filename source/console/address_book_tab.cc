@@ -157,6 +157,11 @@ AddressBookTab::AddressBookTab(const QString& file_path,
 
     connect(ui.tree_computer, &ComputerTree::itemDoubleClicked,
             this, &AddressBookTab::onComputerItemDoubleClicked);
+
+    // A book that was joined before stays joined. It is put off until the event loop runs so that
+    // whoever made this tab has finished connecting to its signals first, and hears about the
+    // state of the connection.
+    QTimer::singleShot(0, this, &AddressBookTab::resumeSyncIfEnabled);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -484,7 +489,7 @@ void AddressBookTab::addComputerGroup()
     ComputerGroupItem* item = parent_item->addChildComputerGroup(computer_group_released);
     ui.tree_group->setCurrentItem(item);
     ui.tree_group->sortItems(0, Qt::AscendingOrder);
-    setChanged(true);
+    noteEdited();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -518,7 +523,7 @@ void AddressBookTab::addComputer()
         ui.tree_computer->addTopLevelItem(new ComputerItem(computer, parent_item));
     }
 
-    setChanged(true);
+    noteEdited();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -562,7 +567,7 @@ void AddressBookTab::copyComputer()
         ui.tree_computer->addTopLevelItem(new ComputerItem(computer, parent_group_item));
     }
 
-    setChanged(true);
+    noteEdited();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -588,7 +593,7 @@ void AddressBookTab::modifyAddressBook()
     LOG(LS_INFO) << "[ACTION] Address book modified";
 
     root_item->updateItem();
-    setChanged(true);
+    noteEdited();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -641,7 +646,7 @@ void AddressBookTab::modifyComputerGroup()
     LOG(LS_INFO) << "[ACTION] Computer group modified";
 
     current_item->updateItem();
-    setChanged(true);
+    noteEdited();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -671,7 +676,7 @@ void AddressBookTab::modifyComputer()
 
     current_item->computer()->CopyFrom(dialog.computer());
     current_item->updateItem();
-    setChanged(true);
+    noteEdited();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -713,7 +718,7 @@ void AddressBookTab::removeComputerGroup()
         cleanupComputerGroup(current_item->computerGroup());
 
         if (parent_item->deleteChildComputerGroup(current_item))
-            setChanged(true);
+            noteEdited();
     }
     else
     {
@@ -755,7 +760,7 @@ void AddressBookTab::removeComputer()
         if (parent_group->deleteChildComputer(current_item->computer()))
         {
             delete current_item;
-            setChanged(true);
+            noteEdited();
         }
     }
     else
@@ -877,7 +882,11 @@ void AddressBookTab::onGroupItemCollapsed(QTreeWidgetItem* item)
     }
 
     current_item->SetExpanded(false);
+
+    // Not sent: which folders are open is a state of this person's window. Still written, so it
+    // is the same next time the book is opened.
     setChanged(true);
+    autoSave();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -893,7 +902,9 @@ void AddressBookTab::onGroupItemExpanded(QTreeWidgetItem* item)
     }
 
     current_item->SetExpanded(true);
+
     setChanged(true);
+    autoSave();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -911,7 +922,7 @@ void AddressBookTab::onGroupItemDropped()
 
     ui.tree_group->sortItems(0, Qt::AscendingOrder);
     updateComputerList(current_item);
-    setChanged(true);
+    noteEdited();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1124,6 +1135,20 @@ void AddressBookTab::setChanged(bool value)
 }
 
 //--------------------------------------------------------------------------------------------------
+void AddressBookTab::noteEdited()
+{
+    // One edit made by the person: it goes to the disk and then to the colleagues.
+    //
+    // This is deliberately not hung off setChanged, which everything that touches the book calls,
+    // including what arrives from the router. Sending from there fed itself: what arrived marked
+    // the book changed, that sent, the answer marked it changed again, and it went round as fast
+    // as the disk allowed.
+    setChanged(true);
+    autoSave();
+    startSyncIfEnabled();
+}
+
+//--------------------------------------------------------------------------------------------------
 bool AddressBookTab::isSyncEnabled() const
 {
     return !data_.sync().book_guid().empty();
@@ -1169,18 +1194,58 @@ bool AddressBookTab::enableSync(const QString& book_guid, const QByteArray& salt
     data_.mutable_sync()->clear_epoch();
     data_.mutable_sync()->set_last_pulled_revision(0);
 
+    // Kept so that opening the book tomorrow does not ask for the shared passphrase again. See
+    // SyncState in address_book.proto for why that is not a step backwards.
+    data_.mutable_sync()->set_sync_key(key);
+
     sync_stopped_ = false;
 
-    book_sync_ = std::make_unique<BookSync>(key, this, this);
-    book_controller_ = std::make_unique<BookController>(
-        router.value(), qt_base::Application::uiTaskRunner());
-    book_controller_->start(this);
+    startSync(key, router.value());
 
     setChanged(true);
     autoSave();
 
     emit sig_syncStatusChanged();
     return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::resumeSyncIfEnabled()
+{
+    if (!isSyncEnabled() || book_controller_)
+        return;
+
+    if (data_.sync().sync_key().empty())
+    {
+        // A book that says it is synchronized but carries no key cannot go on by itself. It comes
+        // of a file written before the key was kept, and joining the book again settles it.
+        LOG(LS_ERROR) << "The book is synchronized but holds no key; it has to be joined again";
+        sync_stopped_ = true;
+        emit sig_syncStatusChanged();
+        return;
+    }
+
+    std::optional<client::RouterConfig> router = routerConfig();
+    if (!router.has_value())
+    {
+        LOG(LS_ERROR) << "The book has no router to synchronize through";
+        sync_stopped_ = true;
+        emit sig_syncStatusChanged();
+        return;
+    }
+
+    startSync(data_.sync().sync_key(), router.value());
+
+    emit sig_syncStatusChanged();
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::startSync(const std::string& key, const client::RouterConfig& router)
+{
+    book_sync_ = std::make_unique<BookSync>(key, this, this);
+    book_controller_ = std::make_unique<BookController>(
+        router, qt_base::Application::uiTaskRunner());
+    book_controller_->start(this);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1193,7 +1258,8 @@ void AddressBookTab::disableSync()
     sync_stopped_ = false;
 
     // What was fetched stays. The book becomes an ordinary local file again, which is the way back
-    // if any of this turns out to be a bad idea.
+    // if any of this turns out to be a bad idea. The key goes with it - there is nothing left for
+    // it to open.
     data_.mutable_sync()->Clear();
 
     setChanged(true);
@@ -1360,6 +1426,9 @@ void AddressBookTab::onBookUpdated()
 {
     // What arrived has to reach the disk before it reaches the window: a crash in between would
     // otherwise leave the person looking at records the file does not have.
+    //
+    // It is not sent back. BookSync carries its own exchange to the end, and pushing from here
+    // would answer its own answer for as long as the console stayed open.
     setChanged(true);
     autoSave();
 
@@ -1388,6 +1457,8 @@ void AddressBookTab::onSyncStopped(SyncEngine::PullOutcome::Status reason)
 //--------------------------------------------------------------------------------------------------
 void AddressBookTab::onInSync(int64_t /* revision */)
 {
+    // Nothing is waiting any more, and the revision that says so is worth keeping: the next start
+    // then asks for what happened since, rather than for the whole book.
     setChanged(true);
     autoSave();
 
@@ -1474,6 +1545,15 @@ bool AddressBookTab::saveToFile(const QString& file_path)
 {
     LOG(LS_INFO) << "Save address book to file: '" << file_path.toStdString() << "'";
 
+    // Records made since the last save - by the dialogs, by an import - have no guid yet. This is
+    // the one place every one of them passes through, so they are given an identity here rather
+    // than in every place that can add a record.
+    //
+    // It has to happen before the book is serialized, or the guids would be assigned to the copy
+    // in memory and left out of the file: every record would come back without one after a
+    // restart, be given a new one, and look to the router like a record nobody had seen before.
+    ensureEntryGuids(data_.mutable_root_group());
+
     std::string serialized_data = data_.SerializeAsString();
     std::unique_ptr<base::DataCryptor> cryptor;
 
@@ -1517,11 +1597,6 @@ bool AddressBookTab::saveToFile(const QString& file_path)
         LOG(LS_INFO) << "Selected file path: " << path.toStdString();
         settings.setLastDirectory(QFileInfo(path).absolutePath());
     }
-
-    // Records created since the last save - by the dialogs, by an import - have no guid yet. This
-    // is the one place every one of them passes through, so giving them an identity here covers
-    // all of them at once instead of every place that can add a record.
-    ensureEntryGuids(data_.mutable_root_group());
 
     base::ByteArray buffer = base::serialize(file_);
 
