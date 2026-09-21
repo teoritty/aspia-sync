@@ -1494,9 +1494,9 @@
         <location filename="../main_window.cc" line="713"/>
         <location filename="../main_window.cc" line="724"/>
         <location filename="../main_window.cc" line="736"/>
-        <location filename="../main_window.cc" line="790"/>
-        <location filename="../main_window.cc" line="803"/>
-        <location filename="../main_window.cc" line="1788"/>
+        <location filename="../main_window.cc" line="793"/>
+        <location filename="../main_window.cc" line="806"/>
+        <location filename="../main_window.cc" line="1791"/>
         <source>Warning</source>
         <translation>Предупреждение</translation>
     </message>
@@ -1522,7 +1522,7 @@
     </message>
     <message>
         <location filename="../main_window.cc" line="700"/>
-        <location filename="../main_window.cc" line="777"/>
+        <location filename="../main_window.cc" line="780"/>
         <source>JSON files (*.json)</source>
         <translation>JSON-файлы (*.json)</translation>
     </message>
@@ -1550,27 +1550,27 @@
         <translation>Ошибка при разборе JSON документа: %1.</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="750"/>
+        <location filename="../main_window.cc" line="753"/>
         <source>Import completed successfully.</source>
         <translation>Импорт успешно завершен.</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="775"/>
+        <location filename="../main_window.cc" line="778"/>
         <source>Save File</source>
         <translation>Сохранить файл</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="791"/>
+        <location filename="../main_window.cc" line="794"/>
         <source>Could not open file for writing.</source>
         <translation>Не удалось открыть файл для записи.</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="804"/>
+        <location filename="../main_window.cc" line="807"/>
         <source>Unable to write file.</source>
         <translation>Не удалось записать файл.</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="812"/>
+        <location filename="../main_window.cc" line="815"/>
         <source>Export completed successfully.</source>
         <translation>Экспорт успешно завершен.</translation>
     </message>
@@ -1578,9 +1578,9 @@
         <location filename="../main_window.cc" line="513"/>
         <location filename="../main_window.cc" line="534"/>
         <location filename="../main_window.cc" line="545"/>
-        <location filename="../main_window.cc" line="1077"/>
-        <location filename="../main_window.cc" line="1424"/>
-        <location filename="../main_window.cc" line="1509"/>
+        <location filename="../main_window.cc" line="1080"/>
+        <location filename="../main_window.cc" line="1427"/>
+        <location filename="../main_window.cc" line="1512"/>
         <source>Confirmation</source>
         <translation>Подтверждение</translation>
     </message>
@@ -1620,77 +1620,77 @@ It opens as an ordinary address book.</source>
 Этот файл открывается как обычная адресная книга.</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1078"/>
-        <location filename="../main_window.cc" line="1510"/>
+        <location filename="../main_window.cc" line="1081"/>
+        <location filename="../main_window.cc" line="1513"/>
         <source>Address book &quot;%1&quot; has been changed. Save changes?</source>
         <translation>Адресная книга &quot;%1&quot; изменена. Сохранить изменения?</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1082"/>
-        <location filename="../main_window.cc" line="1428"/>
-        <location filename="../main_window.cc" line="1514"/>
+        <location filename="../main_window.cc" line="1085"/>
+        <location filename="../main_window.cc" line="1431"/>
+        <location filename="../main_window.cc" line="1517"/>
         <source>Yes</source>
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1083"/>
-        <location filename="../main_window.cc" line="1429"/>
-        <location filename="../main_window.cc" line="1515"/>
+        <location filename="../main_window.cc" line="1086"/>
+        <location filename="../main_window.cc" line="1432"/>
+        <location filename="../main_window.cc" line="1518"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1084"/>
-        <location filename="../main_window.cc" line="1516"/>
+        <location filename="../main_window.cc" line="1087"/>
+        <location filename="../main_window.cc" line="1519"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1318"/>
+        <location filename="../main_window.cc" line="1321"/>
         <source>Close other tabs</source>
         <translation>Закрыть другие вкладки</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1325"/>
+        <location filename="../main_window.cc" line="1328"/>
         <source>Close tab</source>
         <translation>Закрыть вкладку</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1326"/>
-        <location filename="../main_window.cc" line="1331"/>
+        <location filename="../main_window.cc" line="1329"/>
+        <location filename="../main_window.cc" line="1334"/>
         <source>Pin tab</source>
         <translation>Закрепить вкладку</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1425"/>
+        <location filename="../main_window.cc" line="1428"/>
         <source>The list of recently opened address books will be cleared. Continue?</source>
         <translation>Список недавно открытых адресных книг будет очищен. Продолжить?</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1462"/>
+        <location filename="../main_window.cc" line="1465"/>
         <source>Hide</source>
         <translation>Спрятать</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1477"/>
+        <location filename="../main_window.cc" line="1480"/>
         <source>Show</source>
         <translation>Показать</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="1789"/>
+        <location filename="../main_window.cc" line="1792"/>
         <source>Connection by ID is specified in the properties of the computer, but the router is not configured. Check the parameters of the router in the properties of the address book.</source>
         <translation>В свойствах компьютера указано подключение по ID, но маршутизатор не настроен. Проверьте параметры маршрутизатора в свойствах адресной книги.</translation>
     </message>
     <message>
-        <location filename="../main_window.cc" line="857"/>
-        <location filename="../main_window.cc" line="1651"/>
+        <location filename="../main_window.cc" line="860"/>
+        <location filename="../main_window.cc" line="1654"/>
         <source>Aspia Console</source>
         <translation>Консоль Aspia</translation>
     </message>
     <message>
         <location filename="../main_window.cc" line="290"/>
-        <location filename="../main_window.cc" line="749"/>
-        <location filename="../main_window.cc" line="811"/>
+        <location filename="../main_window.cc" line="752"/>
+        <location filename="../main_window.cc" line="814"/>
         <source>Information</source>
         <translation>Информация</translation>
     </message>

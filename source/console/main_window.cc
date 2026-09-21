@@ -742,7 +742,10 @@ void MainWindow::onImportComputers()
     importComputersFromJson(json, computer_group);
 
     tab->reloadAll();
-    tab->setChanged(true);
+
+    // Imported records are an edit like any other: in a synchronized book they are saved and sent
+    // at once, rather than waiting for whatever the person happens to change next.
+    tab->noteEdited();
 
     LOG(LS_INFO) << "File imported";
     QMessageBox::information(this,

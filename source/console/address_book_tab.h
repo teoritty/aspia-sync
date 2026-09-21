@@ -60,6 +60,11 @@ public:
     void setChanged(bool changed);
     bool isChanged() const { return is_changed_; }
 
+    // One edit made by the person: written to disk and sent on. Not to be confused with
+    // setChanged, which every change passes through, including what arrives from the router.
+    // Public because not every edit is made inside the tab - an import is made by the window.
+    void noteEdited();
+
     AddressBookTab* duplicateTab() const;
 
     bool save();
@@ -236,10 +241,6 @@ private:
     // every time such a book is opened. Without it the book says it is synchronized, shows no
     // error, and quietly stops talking to anybody until somebody joins it again.
     void resumeSyncIfEnabled();
-
-    // One edit made by the person: written to disk and sent on. Not to be confused with
-    // setChanged, which every change passes through, including what arrives from the router.
-    void noteEdited();
 
     // Holds what arrived from the router while a dialog is open, and tries it again afterwards.
     // Returns true when it was held, meaning the caller must not act on it yet.
