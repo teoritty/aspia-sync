@@ -373,23 +373,35 @@ SyncEngine::PullOutcome SyncEngine::applyPull(const proto::BookPull& page, Data*
         ++outcome.applied;
     }
 
-    std::vector<FlatEntry> kept;
-    kept.reserve(entries.size());
-    for (FlatEntry& entry : entries)
+    // The tree is put back together only when this page actually changed something.
+    //
+    // Rebuilding replaces the whole of the root group, and the window holds pointers straight into
+    // it - one per computer in the list. Doing it for a page that changed nothing would leave
+    // every one of those pointers hanging while the window had no reason to be told to redraw, and
+    // the next thing the person clicked would be read out of freed memory. So the rebuild happens
+    // only when there is something to rebuild for, and it says so in |tree_rebuilt|, which is what
+    // makes the caller redraw.
+    if (outcome.applied != 0)
     {
-        if (!entry.guid.empty())
-            kept.emplace_back(std::move(entry));
-    }
+        std::vector<FlatEntry> kept;
+        kept.reserve(entries.size());
+        for (FlatEntry& entry : entries)
+        {
+            if (!entry.guid.empty())
+                kept.emplace_back(std::move(entry));
+        }
 
-    size_t skipped_by_rebuild = 0;
-    if (!rebuildBook(kept, data->mutable_root_group(), &skipped_by_rebuild))
-    {
-        LOG(LS_ERROR) << "Unable to rebuild the address book from the received records";
-        outcome.status = PullOutcome::Status::WRONG_BOOK;
-        return outcome;
-    }
+        size_t skipped_by_rebuild = 0;
+        if (!rebuildBook(kept, data->mutable_root_group(), &skipped_by_rebuild))
+        {
+            LOG(LS_ERROR) << "Unable to rebuild the address book from the received records";
+            outcome.status = PullOutcome::Status::WRONG_BOOK;
+            return outcome;
+        }
 
-    outcome.skipped += skipped_by_rebuild;
+        outcome.skipped += skipped_by_rebuild;
+        outcome.tree_rebuilt = true;
+    }
 
     data->mutable_sync()->set_epoch(page.epoch());
 
@@ -577,7 +589,10 @@ SyncEngine::PushOutcome SyncEngine::applyPushResult(const proto::BookPushResult&
     }
 
     if (tree_changed)
+    {
         rebuildBook(entries, data->mutable_root_group(), nullptr);
+        outcome.tree_rebuilt = true;
+    }
 
     return outcome;
 }

@@ -27,6 +27,7 @@
 #include "proto/address_book.pb.h"
 #include "ui_address_book_tab.h"
 
+#include <functional>
 #include <optional>
 #include <memory>
 
@@ -204,6 +205,10 @@ private:
     std::unique_ptr<BookController> book_controller_;
     std::unique_ptr<BookSync> book_sync_;
 
+    // Set while what the router sent is waiting for a dialog to close. Only so that it is said in
+    // the log once instead of several times a second.
+    bool holding_ = false;
+
     bool sync_connected_ = false;
     bool sync_stopped_ = false;
 
@@ -215,6 +220,14 @@ private:
     // One edit made by the person: written to disk and sent on. Not to be confused with
     // setChanged, which every change passes through, including what arrives from the router.
     void noteEdited();
+
+    // Holds what arrived from the router while a dialog is open, and tries it again afterwards.
+    // Returns true when it was held, meaning the caller must not act on it yet.
+    bool holdWhileDialogIsOpen(std::function<void()> again);
+
+    // How long to wait before looking again. Short enough that nobody notices, long enough that a
+    // dialog somebody leaves open does not cost anything to keep checking.
+    static const int kDialogRetryMs = 300;
 
     void startSync(const std::string& key, const client::RouterConfig& router);
     void startSyncIfEnabled();

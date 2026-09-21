@@ -36,12 +36,16 @@
 #include "console/computer_item.h"
 #include "console/open_address_book_dialog.h"
 #include "console/settings.h"
+#include "proto/router_book.pb.h"
 #include "qt_base/application.h"
 
+#include <QApplication>
 #include <QFileDialog>
 #include <QMenu>
 #include <QMessageBox>
 #include <QTimer>
+
+#include <functional>
 
 namespace console {
 
@@ -1389,22 +1393,69 @@ void AddressBookTab::onBookList(const proto::BookList& /* message */)
 //--------------------------------------------------------------------------------------------------
 void AddressBookTab::onBookPull(const proto::BookPull& message)
 {
-    if (book_sync_)
-        book_sync_->onPull(message, &data_);
+    if (!book_sync_)
+        return;
+
+    if (holdWhileDialogIsOpen([this, message]() { onBookPull(message); }))
+        return;
+
+    book_sync_->onPull(message, &data_);
 }
 
 //--------------------------------------------------------------------------------------------------
 void AddressBookTab::onBookPushResult(const proto::BookPushResult& message)
 {
-    if (book_sync_)
-        book_sync_->onPushResult(message, &data_);
+    if (!book_sync_)
+        return;
+
+    if (holdWhileDialogIsOpen([this, message]() { onBookPushResult(message); }))
+        return;
+
+    book_sync_->onPushResult(message, &data_);
 }
 
 //--------------------------------------------------------------------------------------------------
 void AddressBookTab::onBookChanged(const proto::BookChanged& message)
 {
-    if (book_sync_)
-        book_sync_->onBookChanged(message, &data_);
+    if (!book_sync_)
+        return;
+
+    if (holdWhileDialogIsOpen([this, message]() { onBookChanged(message); }))
+        return;
+
+    book_sync_->onBookChanged(message, &data_);
+}
+
+//--------------------------------------------------------------------------------------------------
+bool AddressBookTab::holdWhileDialogIsOpen(std::function<void()> again)
+{
+    if (!QApplication::activeModalWidget())
+    {
+        if (holding_)
+        {
+            LOG(LS_INFO) << "The dialog is closed; taking in what the router sent";
+            holding_ = false;
+        }
+        return false;
+    }
+
+    if (!holding_)
+    {
+        // Said once rather than every time it looks, which is several times a second for as long
+        // as the dialog stays open.
+        LOG(LS_INFO) << "A dialog is open; holding what the router sent until it closes";
+        holding_ = true;
+    }
+
+    // Somebody has a dialog open - the properties of a computer, most likely. Taking a colleague's
+    // change in now would replace the tree under it, and the tree is what the window points into:
+    // the dialog was handed a record that would no longer exist, and pressing OK would write
+    // through a pointer to freed memory.
+    //
+    // So it waits. What arrived is held and tried again shortly; the exchange is idle meanwhile,
+    // which is the right thing for it to be while somebody is in the middle of typing.
+    QTimer::singleShot(kDialogRetryMs, this, [again]() { again(); });
+    return true;
 }
 
 //--------------------------------------------------------------------------------------------------

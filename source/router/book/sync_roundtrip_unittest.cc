@@ -570,3 +570,44 @@ TEST_F(SyncRoundtripTest, letting_their_deletion_through_removes_it_here_too)
     vanya_->exchange();
     EXPECT_EQ(vanya_->computerCount(), 1);
 }
+
+//--------------------------------------------------------------------------------------------------
+// The window holds a pointer straight into the book - one per computer in the list - so putting
+// the tree back together throws every one of them away. An exchange that changed nothing must
+// therefore not put it back together, or the next thing the person clicks is read out of freed
+// memory and the console goes without a word.
+TEST_F(SyncRoundtripTest, an_exchange_that_changes_nothing_leaves_the_tree_alone)
+{
+    vanya_->addComputer("server", "12345");
+    vanya_->exchange();
+    petya_->exchange();
+
+    ASSERT_EQ(petya_->computerCount(), 1);
+    const Computer* before = &petya_->data().root_group().computer(0);
+
+    // Three more exchanges with nothing to carry.
+    petya_->exchange();
+    petya_->exchange();
+    petya_->exchange();
+
+    ASSERT_EQ(petya_->computerCount(), 1);
+    EXPECT_EQ(&petya_->data().root_group().computer(0), before)
+        << "the tree was replaced although nothing changed";
+}
+
+//--------------------------------------------------------------------------------------------------
+// And when it is put back together, the window is told. These two have to stay tied: what makes
+// the pointers stale is exactly what has to make the window redraw.
+TEST_F(SyncRoundtripTest, the_window_is_told_whenever_the_tree_is_replaced)
+{
+    vanya_->addComputer("server", "12345");
+    vanya_->exchange();
+
+    const int before = petya_->updates();
+    petya_->exchange();
+    EXPECT_GT(petya_->updates(), before) << "the tree changed and nobody was told";
+
+    const int after = petya_->updates();
+    petya_->exchange();
+    EXPECT_EQ(petya_->updates(), after) << "nothing changed and the window was redrawn anyway";
+}

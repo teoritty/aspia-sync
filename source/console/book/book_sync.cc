@@ -123,7 +123,7 @@ void BookSync::onPushResult(const proto::BookPushResult& result, proto::address_
 
     const SyncEngine::PushOutcome outcome = engine_.applyPushResult(result, data);
 
-    if (outcome.accepted || outcome.merged)
+    if (outcome.accepted || outcome.merged || outcome.tree_rebuilt)
         observer_->onBookUpdated();
 
     noteConflicts(outcome.conflicts);
@@ -162,7 +162,10 @@ void BookSync::onPull(const proto::BookPull& page, proto::address_book::Data* da
             return;
     }
 
-    if (outcome.applied)
+    // Told whenever the tree was replaced, and not merely when records changed. The two are the
+    // same thing today; keeping the redraw tied to the replacement is what stops them drifting
+    // apart and leaving the window pointing into memory that has been freed.
+    if (outcome.applied || outcome.tree_rebuilt)
         observer_->onBookUpdated();
 
     noteConflicts(outcome.conflicts);

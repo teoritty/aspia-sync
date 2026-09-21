@@ -85,6 +85,11 @@ public:
         size_t applied = 0; // Records taken into the book.
         size_t skipped = 0; // Records that could not be used and were passed over.
 
+        // The tree under root_group() was replaced, so anything holding a pointer into it - the
+        // window holds one per computer in the list - is now holding a pointer to nothing. The
+        // caller has to redraw before anybody can click on anything.
+        bool tree_rebuilt = false;
+
         // Records where both sides changed the same field. They keep their local value and wait
         // for a person; everything else goes on without them, because one unanswered question
         // must not stop the book from synchronizing.
@@ -107,6 +112,9 @@ public:
     {
         size_t accepted = 0;
         size_t rejected = 0;
+
+        // As above: what was merged went back into the tree, and the tree was rebuilt to do it.
+        bool tree_rebuilt = false;
 
         // Refused because somebody else got there first. These are merged against what came back
         // with the refusal, and what merges cleanly is ready to be sent again at once.
