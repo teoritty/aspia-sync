@@ -20,6 +20,8 @@
 #include "build/version.h"
 #include "console/application.h"
 #include "console/main_window.h"
+#include "console/settings.h"
+#include "console/theme.h"
 #include "qt_base/scoped_qt_logging.h"
 
 #if defined(OS_WIN)
@@ -53,6 +55,8 @@ int main(int argc, char *argv[])
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
     console::Application application(argc, argv);
+
+    console::applyTheme(console::Settings().isDarkTheme());
 
     LOG(LS_INFO) << "Version: " << ASPIA_VERSION_STRING << " (arch: " << ARCH_CPU_STRING << ")";
 #if defined(GIT_CURRENT_BRANCH) && defined(GIT_COMMIT_HASH)

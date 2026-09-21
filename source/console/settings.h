@@ -59,6 +59,9 @@ public:
     bool isToolBarEnabled() const;
     void setToolBarEnabled(bool enable);
 
+    bool isDarkTheme() const;
+    void setDarkTheme(bool enable);
+
     bool isStatusBarEnabled() const;
     void setStatusBarEnabled(bool enable);
 

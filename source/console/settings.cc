@@ -36,6 +36,7 @@ const QString kEnableRecentOpenParam = QStringLiteral("EnableRecentOpen");
 const QString kRecentOpenParam = QStringLiteral("RecentOpen");
 const QString kPinnedFilesParam = QStringLiteral("PinnedFiles");
 const QString kToolbarParam = QStringLiteral("Toolbar");
+const QString kDarkThemeParam = QStringLiteral("DarkTheme");
 const QString kStatusbarParam = QStringLiteral("Statusbar");
 const QString kMinimizeToTrayParam = QStringLiteral("MinimizeToTray");
 const QString kAlwaysShowTrayIconParam = QStringLiteral("AlwaysShowTrayIcon");
@@ -166,6 +167,18 @@ bool Settings::isToolBarEnabled() const
 void Settings::setToolBarEnabled(bool enable)
 {
     settings_.setValue(kToolbarParam, enable);
+}
+
+//--------------------------------------------------------------------------------------------------
+bool Settings::isDarkTheme() const
+{
+    return settings_.value(kDarkThemeParam, false).toBool();
+}
+
+//--------------------------------------------------------------------------------------------------
+void Settings::setDarkTheme(bool enable)
+{
+    settings_.setValue(kDarkThemeParam, enable);
 }
 
 //--------------------------------------------------------------------------------------------------

@@ -34,6 +34,7 @@
 #include "console/mru_action.h"
 #include "console/sync_dialog.h"
 #include "console/sync_wizard.h"
+#include "console/theme.h"
 #include "console/update_settings_dialog.h"
 #include "common/ui/update_dialog.h"
 #include "qt_base/qt_logging.h"
@@ -78,6 +79,7 @@ MainWindow::MainWindow(const QString& file_path)
     ui.action_minimize_to_tray->setChecked(settings.minimizeToTray());
     ui.action_toolbar->setChecked(settings.isToolBarEnabled());
     ui.action_statusbar->setChecked(settings.isStatusBarEnabled());
+    ui.action_dark_theme->setChecked(settings.isDarkTheme());
     ui.action_show_icons_in_menus->setChecked(settings.showIconsInMenus());
 
     ui.status_bar->setVisible(ui.action_statusbar->isChecked());
@@ -158,6 +160,16 @@ MainWindow::MainWindow(const QString& file_path)
     connect(ui.tool_bar, &QToolBar::visibilityChanged, ui.action_toolbar, &QAction::setChecked);
     connect(ui.action_toolbar, &QAction::toggled, ui.tool_bar, &QToolBar::setVisible);
     connect(ui.action_statusbar, &QAction::toggled, ui.status_bar, &QStatusBar::setVisible);
+
+    connect(ui.action_dark_theme, &QAction::toggled, this, [](bool dark)
+    {
+        LOG(LS_INFO) << "[ACTION] Dark theme: " << dark;
+
+        // Kept at once rather than on the way out, like the rest of the window state is: a look
+        // somebody chose should survive the console being killed.
+        Settings().setDarkTheme(dark);
+        applyTheme(dark);
+    });
     connect(ui.tab_widget, &QTabWidget::currentChanged, this, &MainWindow::onCurrentTabChanged);
     connect(ui.tab_widget, &QTabWidget::tabCloseRequested, this, &MainWindow::onCloseTab);
     connect(ui.menu_language, &QMenu::triggered, this, &MainWindow::onLanguageChanged);

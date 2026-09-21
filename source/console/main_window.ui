@@ -135,6 +135,7 @@
     <addaction name="menu_language"/>
     <addaction name="action_toolbar"/>
     <addaction name="action_statusbar"/>
+    <addaction name="action_dark_theme"/>
     <addaction name="separator"/>
     <addaction name="action_show_tray_icon"/>
     <addaction name="action_minimize_to_tray"/>
@@ -479,6 +480,14 @@
    </property>
    <property name="text">
     <string>Tool Bar</string>
+   </property>
+  </action>
+  <action name="action_dark_theme">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Dark Theme</string>
    </property>
   </action>
   <action name="action_statusbar">

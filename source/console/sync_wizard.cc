@@ -21,6 +21,7 @@
 #include "base/logging.h"
 #include "console/book/flat_book.h"
 #include "console/book/sync_key.h"
+#include "console/theme.h"
 #include "proto/router_book.pb.h"
 #include "qt_base/application.h"
 
@@ -228,7 +229,7 @@ void SyncWizard::setStatus(const QString& text, bool error)
         return;
 
     status_label_->setText(text);
-    status_label_->setStyleSheet(error ? QStringLiteral("color: #b00020;") : QString());
+    status_label_->setStyleSheet(error ? QStringLiteral("color: %1;").arg(errorColor().name()) : QString());
 }
 
 //--------------------------------------------------------------------------------------------------

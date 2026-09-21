@@ -20,6 +20,7 @@
 
 #include "base/logging.h"
 #include "console/address_book_tab.h"
+#include "console/theme.h"
 
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -151,7 +152,7 @@ void SyncDialog::updateStatus()
         // point: the alternative is a console that looks like it is working and is not.
         state_label_->setText(tr("Stopped. The router was restored from a backup, or the "
                                  "passphrase no longer matches. Join the book again."));
-        state_label_->setStyleSheet(QStringLiteral("color: #b00020;"));
+        state_label_->setStyleSheet(QStringLiteral("color: %1;").arg(errorColor().name()));
     }
     else if (status.connected)
     {

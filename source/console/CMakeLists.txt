@@ -92,6 +92,8 @@ list(APPEND SOURCE_CONSOLE
     sync_dialog.h
     sync_wizard.cc
     sync_wizard.h
+    theme.cc
+    theme.h
     update_settings_dialog.cc
     update_settings_dialog.h
     update_settings_dialog.ui)
