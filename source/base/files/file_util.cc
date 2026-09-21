@@ -27,6 +27,12 @@
 #include <Windows.h>
 #endif // defined(OS_WIN)
 
+#if defined(OS_POSIX)
+#include "base/posix/eintr_wrapper.h"
+#include <fcntl.h>
+#include <unistd.h>
+#endif // defined(OS_POSIX)
+
 namespace base {
 
 namespace {
@@ -51,9 +57,17 @@ bool flushToDisk(const std::filesystem::path& filename)
         return false;
 
     return !!FlushFileBuffers(file.get());
-#else // defined(OS_WIN)
+#elif defined(OS_POSIX)
+    const int fd = HANDLE_EINTR(open(filename.c_str(), O_WRONLY | O_CLOEXEC));
+    if (fd < 0)
+        return false;
+
+    const bool flushed = HANDLE_EINTR(fsync(fd)) == 0;
+    close(fd);
+    return flushed;
+#else
     return true;
-#endif // !defined(OS_WIN)
+#endif
 }
 
 //--------------------------------------------------------------------------------------------------

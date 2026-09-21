@@ -145,6 +145,10 @@ TEST(file_util_test, atomic_write_leaves_no_temporary)
 // The point of the whole exercise: a write that fails must leave what was there before. The
 // previous implementation opened the target for writing and truncated it before it had anything
 // to put in its place, so an interrupted save destroyed the address book.
+//
+// Windows only: it makes the rename fail by holding the target open, and elsewhere an open file
+// does not stop a rename.
+#if defined(OS_WIN)
 TEST(file_util_test, atomic_write_keeps_original_when_replace_fails)
 {
     ScopedTestDir dir;
@@ -172,6 +176,7 @@ TEST(file_util_test, atomic_write_keeps_original_when_replace_fails)
     lock.reset();
     EXPECT_EQ(readBack(path), "original");
 }
+#endif // defined(OS_WIN)
 
 //--------------------------------------------------------------------------------------------------
 TEST(file_util_test, atomic_write_refuses_missing_directory)
