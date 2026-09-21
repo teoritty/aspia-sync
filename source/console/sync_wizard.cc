@@ -190,7 +190,9 @@ void SyncWizard::buildUi()
     QDialogButtonBox* buttons = new QDialogButtonBox(this);
     buttons->addButton(back_button_, QDialogButtonBox::ActionRole);
     buttons->addButton(next_button_, QDialogButtonBox::AcceptRole);
-    buttons->addButton(QDialogButtonBox::Cancel);
+    // The text is set here, as everywhere else in the console: Qt's own translations are not loaded,
+    // so a standard button would stay in English.
+    buttons->addButton(QDialogButtonBox::Cancel)->setText(tr("Cancel"));
 
     connect(back_button_, &QPushButton::clicked, this, &SyncWizard::onBack);
     connect(next_button_, &QPushButton::clicked, this, &SyncWizard::onNext);

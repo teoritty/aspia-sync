@@ -127,6 +127,7 @@ void SyncDialog::buildUi()
     tabs->addTab(conflict_page, tr("Conflicts"));
 
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
+    buttons->button(QDialogButtonBox::Close)->setText(tr("Close"));
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     QVBoxLayout* layout = new QVBoxLayout(this);
@@ -269,7 +270,10 @@ void SyncDialog::onStopSync()
         return;
 
     tab_->disableSync();
-    updateStatus();
+
+    // Nothing is left to show here, and what usually comes next is joining again - this book or
+    // another one - so the window closes and the join wizard takes over.
+    accept();
 }
 
 } // namespace console

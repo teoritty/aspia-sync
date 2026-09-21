@@ -1299,7 +1299,12 @@ void AddressBookTab::disableSync()
     data_.mutable_sync()->Clear();
 
     setChanged(true);
-    autoSave();
+
+    // Written at once, and not through autoSave: that only saves books that are synchronized, which
+    // this one stopped being a line ago. Left unsaved, the file would still say it is joined, and
+    // the next start would quietly join it again.
+    if (!file_path_.isEmpty())
+        saveToFile(file_path_);
 
     emit sig_syncStatusChanged();
 }

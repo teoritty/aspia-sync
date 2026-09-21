@@ -512,7 +512,11 @@ void MainWindow::onSync()
     {
         SyncDialog dialog(tab, this);
         dialog.exec();
-        return;
+
+        // Stopping synchronization closes the window and goes straight on to joining, which is
+        // what somebody who stopped it is usually after. Cancelling the wizard leaves it stopped.
+        if (tab->isSyncEnabled())
+            return;
     }
 
     // Joining needs somewhere to join to, and that is the router this book already uses. A book
