@@ -36,6 +36,7 @@ int calculateSpeed(int last_speed, const NetworkChannel::Milliseconds& duration,
 } // namespace
 
 const uint32_t NetworkChannel::kMaxMessageSize = 7 * 1024 * 1024; // 7 MB
+const uint32_t NetworkChannel::kMaxAuthMessageSize = 16 * 1024; // 16 KB
 
 //--------------------------------------------------------------------------------------------------
 int NetworkChannel::speedRx()

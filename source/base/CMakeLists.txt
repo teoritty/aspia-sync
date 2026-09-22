@@ -483,7 +483,8 @@ endif()
 
 list(APPEND SOURCE_BASE_NET_TESTS
     net/address_unittest.cc
-    net/ip_util_unittest.cc)
+    net/ip_util_unittest.cc
+    net/tcp_channel_unittest.cc)
 
 list(APPEND SOURCE_BASE_PEER
     peer/authenticator.cc

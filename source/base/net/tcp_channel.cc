@@ -225,6 +225,18 @@ void TcpChannel::setDecryptor(std::unique_ptr<MessageDecryptor> decryptor)
 }
 
 //--------------------------------------------------------------------------------------------------
+void TcpChannel::setAuthenticated()
+{
+    authenticated_ = true;
+}
+
+//--------------------------------------------------------------------------------------------------
+size_t TcpChannel::maxMessageSize() const
+{
+    return authenticated_ ? kMaxMessageSize : kMaxAuthMessageSize;
+}
+
+//--------------------------------------------------------------------------------------------------
 std::u16string TcpChannel::peerAddress() const
 {
     if (!socket_.is_open())
@@ -648,9 +660,10 @@ void TcpChannel::doWrite()
         if (is_channel_id_supported_)
             target_data_size += sizeof(UserDataHeader);
 
-        if (target_data_size > kMaxMessageSize)
+        if (target_data_size > maxMessageSize())
         {
-            LOG(LS_ERROR) << "Too big outgoing message: " << target_data_size;
+            LOG(LS_ERROR) << "Too big outgoing message: " << target_data_size
+                          << " (limit: " << maxMessageSize() << ")";
             onErrorOccurred(FROM_HERE, ErrorCode::INVALID_PROTOCOL);
             return;
         }
@@ -761,9 +774,10 @@ void TcpChannel::onReadSize(const std::error_code& error_code, size_t bytes_tran
     {
         size_t message_size = *size;
 
-        if (message_size > kMaxMessageSize)
+        if (message_size > maxMessageSize())
         {
-            LOG(LS_ERROR) << "Too big incoming message: " << message_size;
+            LOG(LS_ERROR) << "Too big incoming message: " << message_size
+                          << " (limit: " << maxMessageSize() << ")";
             onErrorOccurred(FROM_HERE, ErrorCode::INVALID_PROTOCOL);
             return;
         }
@@ -863,9 +877,10 @@ void TcpChannel::onReadServiceHeader(const std::error_code& error_code, size_t b
     addRxBytes(bytes_transferred);
 
     ServiceHeader* header = reinterpret_cast<ServiceHeader*>(read_buffer_.data());
-    if (header->length > kMaxMessageSize)
+    if (header->length > maxMessageSize())
     {
-        LOG(LS_INFO) << "Too big service message: " << header->length;
+        LOG(LS_INFO) << "Too big service message: " << header->length
+                     << " (limit: " << maxMessageSize() << ")";
         onErrorOccurred(FROM_HERE, ErrorCode::INVALID_PROTOCOL);
         return;
     }
@@ -927,7 +942,7 @@ void TcpChannel::onReadServiceData(const std::error_code& error_code, size_t byt
     ServiceHeader* header = reinterpret_cast<ServiceHeader*>(read_buffer_.data());
 
     DCHECK_EQ(bytes_transferred, read_buffer_.size() - sizeof(ServiceHeader));
-    DCHECK_LE(header->length, kMaxMessageSize);
+    DCHECK_LE(header->length, maxMessageSize());
 
     if (header->type == KEEP_ALIVE)
     {

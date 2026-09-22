@@ -30,6 +30,11 @@ class NetworkChannel
 public:
     static const uint32_t kMaxMessageSize;
 
+    // The limit until the channel is authenticated. Authentication messages are a few kilobytes at
+    // most; without a limit of their own, anybody able to open a connection could make the other
+    // side set aside the full kMaxMessageSize for every connection they open.
+    static const uint32_t kMaxAuthMessageSize;
+
     using Clock = std::chrono::high_resolution_clock;
     using TimePoint = std::chrono::time_point<Clock>;
     using Milliseconds = std::chrono::milliseconds;

@@ -160,9 +160,16 @@ void Authenticator::finish(const Location& location, ErrorCode error_code)
     timer_.stop();
 
     if (error_code == ErrorCode::SUCCESS)
+    {
+        // The channel is paused above, so nothing more is read from it before the limit is lifted:
+        // whoever takes the channel resumes it.
+        channel_->setAuthenticated();
         state_ = State::SUCCESS;
+    }
     else
+    {
         state_ = State::FAILED;
+    }
 
     LOG(LS_INFO) << "Authenticator finished with code: " << errorToString(error_code)
                  << " (" << location.toString() << ")";

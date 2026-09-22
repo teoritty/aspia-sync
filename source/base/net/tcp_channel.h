@@ -69,6 +69,11 @@ public:
     void setEncryptor(std::unique_ptr<MessageEncryptor> encryptor);
     void setDecryptor(std::unique_ptr<MessageDecryptor> decryptor);
 
+    // Marks the channel as authenticated, which lifts the message size limit from
+    // kMaxAuthMessageSize to kMaxMessageSize. Called by the authenticator when it succeeds.
+    void setAuthenticated();
+    bool isAuthenticated() const { return authenticated_; }
+
     // Gets the address of the remote host as a string.
     std::u16string peerAddress() const;
 
@@ -205,9 +210,12 @@ private:
     ByteArray keep_alive_counter_;
     TimePoint keep_alive_timestamp_;
 
+    size_t maxMessageSize() const;
+
     Listener* listener_ = nullptr;
     bool connected_ = false;
     bool paused_ = true;
+    bool authenticated_ = false;
 
     std::unique_ptr<MessageEncryptor> encryptor_;
     std::unique_ptr<MessageDecryptor> decryptor_;
