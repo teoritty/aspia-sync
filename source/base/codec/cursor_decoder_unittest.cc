@@ -137,4 +137,16 @@ TEST(cursor_decoder_test, refuses_a_frame_that_asks_for_a_large_window)
     EXPECT_FALSE(decoder.decode(shapeWithData(16, 16, compressWithWindow(cursor.constImage(), 27))));
 }
 
+//--------------------------------------------------------------------------------------------------
+// A host that announces a small cursor and sends the data of a large one. The decode loop runs
+// while input remains, and would spin with the console frozen if zstd kept taking calls that
+// cannot move; zstd 1.5 reports that as an error instead, and this holds it to it.
+TEST(cursor_decoder_test, refuses_data_larger_than_the_announced_cursor)
+{
+    MouseCursor cursor = makeCursor(64, 64, 2);
+
+    CursorDecoder decoder;
+    EXPECT_FALSE(decoder.decode(shapeWithData(4, 4, compressWithWindow(cursor.constImage(), 22))));
+}
+
 } // namespace base
