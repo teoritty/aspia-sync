@@ -29,6 +29,11 @@ namespace {
 constexpr size_t kMinCacheSize = 2;
 constexpr size_t kMaxCacheSize = 30;
 
+// Upper bound on the match window a cursor frame is allowed to declare. The encoder compresses with
+// kCompressionRatio (see cursor_encoder.cc), for which zstd uses a 4 MB window at most. The default
+// limit is 128 MB, which a frame of a few dozen bytes from a host can request.
+constexpr int kMaxWindowLog = 22;
+
 } // namespace
 
 //--------------------------------------------------------------------------------------------------
@@ -71,6 +76,14 @@ ByteArray CursorDecoder::decompressCursor(const proto::CursorShape& cursor_shape
     if (ZSTD_isError(ret))
     {
         LOG(LS_ERROR) << "ZSTD_initDStream failed: " << ZSTD_getErrorName(ret)
+                      << " (" << ret << ")";
+        return ByteArray();
+    }
+
+    ret = ZSTD_DCtx_setParameter(stream_.get(), ZSTD_d_windowLogMax, kMaxWindowLog);
+    if (ZSTD_isError(ret))
+    {
+        LOG(LS_ERROR) << "ZSTD_DCtx_setParameter failed: " << ZSTD_getErrorName(ret)
                       << " (" << ret << ")";
         return ByteArray();
     }

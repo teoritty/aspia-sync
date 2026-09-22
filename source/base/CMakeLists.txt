@@ -239,6 +239,9 @@ if (LINUX)
     list(APPEND SOURCE_BASE_CRYPTO crypto/os_crypt_linux.cc)
 endif()
 
+list(APPEND SOURCE_BASE_CODEC_TESTS
+    codec/cursor_decoder_unittest.cc)
+
 list(APPEND SOURCE_BASE_CRYPTO_TESTS
     crypto/big_num_unittest.cc
     crypto/cryptor_unittest.cc
@@ -646,7 +649,7 @@ endif()
 
 source_group("" FILES ${SOURCE_BASE} ${SOURCE_BASE_TESTS})
 source_group(audio FILES ${SOURCE_BASE_AUDIO})
-source_group(codec FILES ${SOURCE_BASE_CODEC})
+source_group(codec FILES ${SOURCE_BASE_CODEC} ${SOURCE_BASE_CODEC_TESTS})
 source_group(crypto FILES ${SOURCE_BASE_CRYPTO} ${SOURCE_BASE_CRYPTO_TESTS})
 source_group(desktop FILES ${SOURCE_BASE_DESKTOP} ${SOURCE_BASE_DESKTOP_TESTS})
 source_group(files FILES ${SOURCE_BASE_FILES})
@@ -676,6 +679,7 @@ if (ASPIA_BUILD_ROUTER_ONLY)
     set(SOURCE_BASE_AUDIO)
     set(SOURCE_BASE_AUDIO_WIN)
     set(SOURCE_BASE_CODEC)
+    set(SOURCE_BASE_CODEC_TESTS)
     set(SOURCE_BASE_DESKTOP)
     set(SOURCE_BASE_DESKTOP_WIN)
     set(SOURCE_BASE_DESKTOP_TESTS)
@@ -723,6 +727,7 @@ endif()
 
 add_executable(aspia_base_tests
     ${SOURCE_BASE_TESTS}
+    ${SOURCE_BASE_CODEC_TESTS}
     ${SOURCE_BASE_CRYPTO_TESTS}
     ${SOURCE_BASE_DESKTOP_TESTS}
     ${SOURCE_BASE_DESKTOP_WIN_TESTS}
