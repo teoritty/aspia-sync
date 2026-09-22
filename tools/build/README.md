@@ -1,22 +1,22 @@
-# Сборка
+# Building
 
-Консоль, клиент и хост собираются только под Windows x64. Роутер — ещё и под Linux, см. ниже.
+The console, the client and the host are built for Windows x64 only. The router is also built for Linux, see below.
 
-## Что нужно поставить
+## What to install
 
-| Что | Чем |
+| What | How |
 |---|---|
-| Visual Studio 2022 Build Tools, рабочая нагрузка C++ | `winget install Microsoft.VisualStudio.2022.BuildTools` |
-| Компонент **ATL** | `setup.exe modify --installPath "<путь>" --add Microsoft.VisualStudio.Component.VC.ATL --quiet` |
-| Компонент **MFC** | `setup.exe modify --installPath "<путь>" --add Microsoft.VisualStudio.Component.VC.ATLMFC --quiet` |
+| Visual Studio 2022 Build Tools, C++ workload | `winget install Microsoft.VisualStudio.2022.BuildTools` |
+| The **ATL** component | `setup.exe modify --installPath "<path>" --add Microsoft.VisualStudio.Component.VC.ATL --quiet` |
+| The **MFC** component | `setup.exe modify --installPath "<path>" --add Microsoft.VisualStudio.Component.VC.ATLMFC --quiet` |
 | CMake 3.21+ | `winget install Kitware.CMake` |
 | Ninja | `winget install Ninja-build.Ninja` |
 
-`setup.exe` лежит в `%ProgramFiles(x86)%\Microsoft Visual Studio\Installer`, команды требуют прав администратора.
+`setup.exe` is in `%ProgramFiles(x86)%\Microsoft Visual Studio\Installer`; the commands need administrator rights.
 
-ATL и MFC нужны не сами по себе: пакет `wtl` из `vcpkg.json` тянет порты `atl` и `atlmfc`, а им требуются `atlbase.h` и `afxres.h` из набора инструментов. В базовую нагрузку C++ эти компоненты не входят, и без них сборка останавливается на установке зависимостей. `env.cmd` проверяет их наличие и говорит об этом сразу, а не через полчаса.
+ATL and MFC are not needed for their own sake: the `wtl` package from `vcpkg.json` pulls in the `atl` and `atlmfc` ports, and those need `atlbase.h` and `afxres.h` from the toolset. The base C++ workload does not include these components, and without them the build stops while installing dependencies. `env.cmd` checks for them and says so right away rather than half an hour in.
 
-## Как собрать
+## How to build
 
 ```
 git submodule update --init
@@ -25,63 +25,63 @@ tools\build\configure.cmd
 tools\build\build.cmd
 ```
 
-Либо одной командой, с тестами:
+Or in one command, with the tests:
 
 ```
 tools\build\verify.cmd
 ```
 
-**Первая конфигурация идёт часами**: vcpkg собирает Qt5 из исходников под статический триплет. Последующие берут готовое из двоичного кэша и проходят за минуты. Под `builds/` уйдёт около 20 ГБ.
+**The first configuration takes hours**: vcpkg builds Qt5 from source for a static triplet. Later ones take what is ready from the binary cache and finish in minutes. `builds/` will take about 20 GB.
 
-## Почему не штатные пресеты
+## Why not the stock presets
 
-В `CMakePresets.json` есть пресеты `ninja-multi-vcpkg-local-*`, но локально они не работают: `VCPKG_ROOT` в них указывает на каталог `vcpkg`, которого в репозитории нет (подмодуль называется `vcpkg4aspia`), а в Windows-пресете зашит путь к Ninja с машины другого разработчика. Скрипты используют пресет `ninja-multi-vcpkg-ci`, который берёт всё из переменных окружения.
+`CMakePresets.json` has `ninja-multi-vcpkg-local-*` presets, but they do not work locally: their `VCPKG_ROOT` points to a `vcpkg` directory that the repository does not have (the submodule is called `vcpkg4aspia`), and the Windows preset has the path to Ninja from another developer's machine hardcoded. The scripts use the `ninja-multi-vcpkg-ci` preset, which takes everything from environment variables.
 
-## Если сборка падает странно
+## If the build fails strangely
 
-**Сотни ошибок внутри `vcruntime.h`, упоминания `C:\msys64`.** CMake нашёл зависимость (обычно zstd) в установке MinGW из `PATH` и притащил вместе с ней заголовки MinGW, несовместимые с заголовками MSVC. `env.cmd` запрещает CMake смотреть в такие префиксы через `CMAKE_IGNORE_PREFIX_PATH`; если у вас MinGW лежит в другом месте, добавьте его туда же.
+**Hundreds of errors inside `vcruntime.h`, mentions of `C:\msys64`.** CMake found a dependency (usually zstd) in a MinGW installation on `PATH` and dragged MinGW headers along with it, which clash with the MSVC ones. `env.cmd` tells CMake to ignore such prefixes through `CMAKE_IGNORE_PREFIX_PATH`; if your MinGW lives somewhere else, add it there.
 
-**`Unable to locate 'atlbase.h'` или `'afxres.h'`.** Не хватает компонента ATL или MFC, см. таблицу выше.
+**`Unable to locate 'atlbase.h'` or `'afxres.h'`.** The ATL or MFC component is missing, see the table above.
 
-**`Permission denied (publickey)` при инициализации подмодуля.** Адрес в `.gitmodules` переведён на https, так что ключ не нужен; ошибка означает, что у вас остался старый адрес в `.git/config`. Уберите его: `git config --unset submodule.vcpkg4aspia.url`.
+**`Permission denied (publickey)` when initializing the submodule.** The URL in `.gitmodules` is https, so no key is needed; the error means an old URL is left in `.git/config`. Remove it: `git config --unset submodule.vcpkg4aspia.url`.
 
-## Правка сборочных скриптов
+## Editing the build scripts
 
-Файлы `.cmd` должны иметь переводы строк CRLF, иначе `cmd` разбирает их через строку и выдаёт бессмысленные сообщения вроде `|| was unexpected at this time`. В `.gitattributes` это задано правилом `*.cmd text eol=crlf`; при правке сторонним редактором следите, чтобы он не переписал их в LF.
+`.cmd` files must have CRLF line endings, otherwise `cmd` parses them every other line and prints nonsense such as `|| was unexpected at this time`. `.gitattributes` sets this with the rule `*.cmd text eol=crlf`; when editing with another editor, make sure it does not rewrite them to LF.
 
-## Роутер под Linux
+## The router for Linux
 
-Собирается только роутер: без Qt, кодеков, звука и рабочего стола (опция `ASPIA_BUILD_ROUTER_ONLY`, пресет `linux-router`). Результат — пакет `.deb` с программой и службой systemd.
+Only the router is built: without Qt, codecs, audio or the desktop (the `ASPIA_BUILD_ROUTER_ONLY` option, the `linux-router` preset). The result is a `.deb` package with the program and a systemd service.
 
-Собирать нужно на **Ubuntu 24.04** — самой старой системе, на которой роутер должен работать. Собранное там работает и на более новых; собранное на новой на 24.04 не запустится. Подойдёт WSL с Ubuntu 24.04.
+Build on **Ubuntu 24.04**, the oldest system the router has to run on. What is built there runs on newer systems too; what is built on a newer one will not start on 24.04. WSL with Ubuntu 24.04 will do.
 
 ```
-sudo apt install build-essential cmake ninja-build git curl zip unzip tar pkg-config nasm     autoconf autoconf-archive automake libtool python3 bison flex
+sudo apt install build-essential cmake ninja-build git curl zip unzip tar pkg-config nasm \
+    autoconf autoconf-archive automake libtool python3 bison flex
 
 git submodule update --init
 tools/build/build_router_linux.sh
 ```
 
-Скрипт собирает, прогоняет тесты и кладёт пакет в `builds/linux-router/aspia-router-<версия>-x86_64.deb`. Первая сборка идёт около получаса (vcpkg собирает OpenSSL, protobuf, ICU и остальное), следующие — минуты.
+The script builds, runs the tests and puts the package into `builds/linux-router/aspia-router-<version>-x86_64.deb`. The first build takes about half an hour (vcpkg builds OpenSSL, protobuf, ICU and the rest); later ones take minutes.
 
-В WSL собирайте в файловой системе Linux (`~/...`), а не на диске Windows (`/mnt/c/...`): там сборка медленнее в разы.
+Under WSL, build in the Linux file system (`~/...`), not on the Windows drive (`/mnt/c/...`): the build is several times slower there.
 
-### Установка на сервер
+### Installing on a server
 
 ```
-sudo apt install ./aspia-router-<версия>-x86_64.deb
+sudo apt install ./aspia-router-<version>-x86_64.deb
 sudo aspia_router --create-config
 sudo systemctl enable --now aspia-router
 ```
 
-`--create-config` создаёт пользователя `admin` с паролем `admin`, ключи и базу. Пароль смените сразу, из консоли: «Инструменты → Управление маршрутизатором».
+`--create-config` creates the user `admin` with the password `admin`, the keys and the database. Change the password right away from the console: "Tools → Router Manage".
 
-| Что | Где |
+| What | Where |
 |---|---|
-| Настройки и приватный ключ | `/etc/aspia/router.json` (доступ только root) |
-| Публичный ключ | `/etc/aspia/router.pub` |
-| База: пользователи, хосты, общие книги | `/var/lib/aspia/router.db3` (доступ только root) |
-| Логи | журнал systemd: `journalctl -u aspia-router` |
+| Settings and the private key | `/etc/aspia/router.json` (root only) |
+| Public key | `/etc/aspia/router.pub` |
+| Database: users, hosts, shared books | `/var/lib/aspia/router.db3` (root only) |
+| Logs | the systemd journal: `journalctl -u aspia-router` |
 
-Порт по умолчанию — TCP 8060; если на сервере включён брандмауэр: `sudo ufw allow 8060/tcp`.
-
+The default port is TCP 8060; if the server has a firewall: `sudo ufw allow 8060/tcp`.

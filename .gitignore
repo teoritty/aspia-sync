@@ -19,3 +19,9 @@
 # SW build dir and generated files
 .sw
 /*.lnk
+
+# Local tooling and notes that are not part of the project
+/.claude/
+/.mcp.json
+/.repowise/
+/docs/
