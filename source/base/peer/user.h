@@ -43,6 +43,9 @@ public:
     static const size_t kMaxPasswordLength = 64;
     static const size_t kSafePasswordLength = 8;
 
+    // The SRP group new users are created with.
+    static const char kDefaultGroup[];
+
     static bool isValidUserName(std::u16string_view username);
     static bool isValidPassword(std::u16string_view password);
     static bool isSafePassword(std::u16string_view password);

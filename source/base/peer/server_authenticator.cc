@@ -443,69 +443,76 @@ void ServerAuthenticator::onIdentify(const ByteArray& buffer)
 
     LOG(LS_INFO) << "Username: '" << user_name_ << "'";
 
-    do
+    std::u16string user_name_utf16 = base::utf16FromUtf8(user_name_);
+    ByteArray seed_key;
+    User user;
+
+    if (user_list_)
     {
-        std::u16string user_name_utf16 = base::utf16FromUtf8(user_name_);
-        ByteArray seed_key;
-        User user;
-
-        if (user_list_)
-        {
-            user = user_list_->find(user_name_utf16);
-            seed_key = user_list_->seedKey();
-        }
-        else
-        {
-            LOG(LS_INFO) << "UserList is nullptr";
-        }
-
-        if (seed_key.empty())
-        {
-            LOG(LS_INFO) << "Empty seed key. Using random 64 bytes";
-            seed_key = base::Random::byteArray(64);
-        }
-
-        if (user.isValid())
-        {
-            LOG(LS_INFO) << "User '" << user_name_ << "' found (enabled: "
-                         << ((user.flags & User::ENABLED) != 0) << ")";
-        }
-        else
-        {
-            LOG(LS_INFO) << "User '" << user_name_ << "' NOT found";
-        }
-
-        if (user.isValid() && (user.flags & User::ENABLED))
-        {
-            session_types_ = user.sessions;
-
-            std::optional<SrpNgPair> Ng_pair = pairByGroup(user.group);
-            if (Ng_pair.has_value())
-            {
-                N_ = BigNum::fromStdString(Ng_pair->first);
-                g_ = BigNum::fromStdString(Ng_pair->second);
-                s_ = BigNum::fromByteArray(user.salt);
-                v_ = BigNum::fromByteArray(user.verifier);
-                break;
-            }
-            else
-            {
-                LOG(LS_ERROR) << "User '" << user.name << "' has an invalid SRP group";
-            }
-        }
-
-        session_types_ = 0;
-
-        GenericHash hash(GenericHash::BLAKE2b512);
-        hash.addData(seed_key);
-        hash.addData(user_name_);
-
-        N_ = BigNum::fromStdString(kSrpNgPair_8192.first);
-        g_ = BigNum::fromStdString(kSrpNgPair_8192.second);
-        s_ = BigNum::fromByteArray(hash.result());
-        v_ = SrpMath::calc_v(user_name_utf16, seed_key, s_, N_, g_);
+        user = user_list_->find(user_name_utf16);
+        seed_key = user_list_->seedKey();
     }
-    while (false);
+    else
+    {
+        LOG(LS_INFO) << "UserList is nullptr";
+    }
+
+    if (seed_key.empty())
+    {
+        LOG(LS_INFO) << "Empty seed key. Using random 64 bytes";
+        seed_key = base::Random::byteArray(64);
+    }
+
+    if (user.isValid())
+    {
+        LOG(LS_INFO) << "User '" << user_name_ << "' found (enabled: "
+                     << ((user.flags & User::ENABLED) != 0) << ")";
+    }
+    else
+    {
+        LOG(LS_INFO) << "User '" << user_name_ << "' NOT found";
+    }
+
+    // The made-up verifier is derived whether or not the user exists, and the real one then put
+    // over it. Deriving it only for an unknown name made the answer to an unknown name slower by
+    // a full modexp, which told anybody timing the answers which names exist.
+    //
+    // It is derived in the group new users are created with, rather than in the largest one: the
+    // group is sent in the clear, and a made-up user in another group than the real ones gave the
+    // names away without any timing at all. Users created in another group still differ by it.
+    std::optional<SrpNgPair> fake_Ng_pair = pairByGroup(User::kDefaultGroup);
+    if (!fake_Ng_pair.has_value())
+    {
+        finish(FROM_HERE, ErrorCode::UNKNOWN_ERROR);
+        return;
+    }
+
+    GenericHash hash(GenericHash::BLAKE2b512);
+    hash.addData(seed_key);
+    hash.addData(user_name_);
+
+    N_ = BigNum::fromStdString(fake_Ng_pair->first);
+    g_ = BigNum::fromStdString(fake_Ng_pair->second);
+    s_ = BigNum::fromByteArray(hash.result());
+    v_ = SrpMath::calc_v(user_name_utf16, seed_key, s_, N_, g_);
+    session_types_ = 0;
+
+    if (user.isValid() && (user.flags & User::ENABLED))
+    {
+        std::optional<SrpNgPair> Ng_pair = pairByGroup(user.group);
+        if (Ng_pair.has_value())
+        {
+            N_ = BigNum::fromStdString(Ng_pair->first);
+            g_ = BigNum::fromStdString(Ng_pair->second);
+            s_ = BigNum::fromByteArray(user.salt);
+            v_ = BigNum::fromByteArray(user.verifier);
+            session_types_ = user.sessions;
+        }
+        else
+        {
+            LOG(LS_ERROR) << "User '" << user.name << "' has an invalid SRP group";
+        }
+    }
 
     b_ = BigNum::fromByteArray(Random::byteArray(128)); // 1024 bits.
     B_ = SrpMath::calc_B(b_, N_, g_, v_);

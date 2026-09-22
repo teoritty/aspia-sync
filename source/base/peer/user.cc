@@ -31,7 +31,6 @@ namespace base {
 namespace {
 
 const size_t kSaltSize = 64; // In bytes.
-const char kDefaultGroup[] = "4096";
 
 //--------------------------------------------------------------------------------------------------
 bool isValidUserNameChar(char16_t username_char)
@@ -51,6 +50,9 @@ bool isValidUserNameChar(char16_t username_char)
 }
 
 } // namespace
+
+// static
+const char User::kDefaultGroup[] = "4096";
 
 // static
 const User User::kInvalidUser;
