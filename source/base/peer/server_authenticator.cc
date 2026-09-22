@@ -25,6 +25,7 @@
 #include "base/sys_info.h"
 #include "base/crypto/generic_hash.h"
 #include "base/crypto/random.h"
+#include "base/crypto/secure_memory.h"
 #include "base/crypto/srp_constants.h"
 #include "base/crypto/srp_math.h"
 #include "base/peer/user_list.h"
@@ -377,6 +378,7 @@ void ServerAuthenticator::onClientHello(const ByteArray& buffer)
             }
 
             session_key_ = GenericHash::hash(GenericHash::Type::BLAKE2s256, temp);
+            memZero(&temp);
             if (session_key_.empty())
             {
                 finish(FROM_HERE, ErrorCode::UNKNOWN_ERROR);
@@ -586,10 +588,13 @@ void ServerAuthenticator::onClientKeyExchange(const ByteArray& buffer)
 
         default:
         {
+            memZero(&srp_key);
             finish(FROM_HERE, ErrorCode::UNKNOWN_ERROR);
             return;
         }
     }
+
+    memZero(&srp_key);
 
     if (!onSessionKeyChanged())
         return;
