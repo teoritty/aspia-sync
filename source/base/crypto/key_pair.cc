@@ -19,7 +19,9 @@
 #include "base/crypto/key_pair.h"
 
 #include "base/logging.h"
+#include "base/crypto/secure_memory.h"
 
+#include <openssl/crypto.h>
 #include <openssl/evp.h>
 
 namespace base {
@@ -234,6 +236,18 @@ ByteArray KeyPair::sessionKey(const ByteArray& peer_public_key) const
     if (session_key.size() != session_key_length)
     {
         LOG(LS_ERROR) << "Invalid session key size";
+        return ByteArray();
+    }
+
+    // RFC 7748, 6.1: X25519 with a low-order public key gives the all-zero value, a secret the
+    // peer can force without knowing any private key. OpenSSL 3 refuses such keys itself; this
+    // does not rely on it. The comparison takes the same time whatever the key is.
+    static const uint8_t kAllZero[32] = {};
+    if (session_key.size() == sizeof(kAllZero) &&
+        CRYPTO_memcmp(session_key.data(), kAllZero, sizeof(kAllZero)) == 0)
+    {
+        LOG(LS_ERROR) << "All-zero shared secret (low-order peer public key)";
+        memZero(&session_key);
         return ByteArray();
     }
 
