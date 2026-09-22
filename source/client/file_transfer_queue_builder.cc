@@ -19,6 +19,7 @@
 #include "client/file_transfer_queue_builder.h"
 
 #include "base/logging.h"
+#include "common/file_platform_util.h"
 #include "common/file_task_factory.h"
 #include "common/file_task_consumer_proxy.h"
 #include "common/file_task_producer_proxy.h"
@@ -57,7 +58,13 @@ void FileTransferQueueBuilder::start(const std::string& source_path,
     DCHECK(callback_);
 
     for (const auto& item : items)
-        addPendingTask(source_path, target_path, item.name, item.is_directory, item.size);
+    {
+        if (!addPendingTask(source_path, target_path, item.name, item.is_directory, item.size))
+        {
+            onAborted(proto::FILE_ERROR_INVALID_PATH_NAME);
+            return;
+        }
+    }
 
     doPendingTasks();
 }
@@ -102,29 +109,43 @@ void FileTransferQueueBuilder::onTaskDone(std::shared_ptr<common::FileTask> task
     {
         const proto::FileList::Item& item = reply.file_list().item(i);
 
-        addPendingTask(last_task.sourcePath(),
-                       last_task.targetPath(),
-                       item.name(),
-                       item.is_directory(),
-                       static_cast<int64_t>(item.size()));
+        if (!addPendingTask(last_task.sourcePath(),
+                            last_task.targetPath(),
+                            item.name(),
+                            item.is_directory(),
+                            static_cast<int64_t>(item.size())))
+        {
+            onAborted(proto::FILE_ERROR_INVALID_PATH_NAME);
+            return;
+        }
     }
 
     doPendingTasks();
 }
 
 //--------------------------------------------------------------------------------------------------
-void FileTransferQueueBuilder::addPendingTask(const std::string& source_dir,
+bool FileTransferQueueBuilder::addPendingTask(const std::string& source_dir,
                                               const std::string& target_dir,
                                               const std::string& item_name,
                                               bool is_directory,
                                               int64_t size)
 {
+    // The names in a directory listing come from the other side and are joined to the target
+    // directory as they are. A name such as "..\Startup\x.exe" from a host would put the file
+    // outside the directory the person chose, so anything that is not a plain name is refused.
+    if (!common::FilePlatformUtil::isValidFileName(QString::fromStdString(item_name)))
+    {
+        LOG(LS_ERROR) << "Rejecting item with invalid name: " << item_name;
+        return false;
+    }
+
     total_size_ += size;
 
     std::string source_path = source_dir + '/' + item_name;
     std::string target_path = target_dir + '/' + item_name;
 
     pending_tasks_.emplace_back(std::move(source_path), std::move(target_path), is_directory, size);
+    return true;
 }
 
 //--------------------------------------------------------------------------------------------------

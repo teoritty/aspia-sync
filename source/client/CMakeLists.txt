@@ -308,6 +308,14 @@ set_property(TARGET aspia_client_core PROPERTY AUTOMOC ON)
 set_property(TARGET aspia_client_core PROPERTY AUTOUIC ON)
 set_property(TARGET aspia_client_core PROPERTY AUTORCC ON)
 
+add_executable(aspia_client_tests file_transfer_queue_builder_unittest.cc)
+target_link_libraries(aspia_client_tests PRIVATE
+    aspia_client_core
+    GTest::gtest
+    GTest::gtest_main
+    ${THIRD_PARTY_LIBS})
+add_test(NAME aspia_client_tests COMMAND aspia_client_tests)
+
 if(Qt5LinguistTools_FOUND)
     # Get the list of translation files.
     file(GLOB CLIENT_CORE_TS_FILES translations/*.ts)

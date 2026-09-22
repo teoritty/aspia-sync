@@ -48,7 +48,7 @@ protected:
     void onTaskDone(std::shared_ptr<common::FileTask> task) final;
 
 private:
-    void addPendingTask(const std::string& source_dir,
+    bool addPendingTask(const std::string& source_dir,
                         const std::string& target_dir,
                         const std::string& item_name,
                         bool is_directory,
