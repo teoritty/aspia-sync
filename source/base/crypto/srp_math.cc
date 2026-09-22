@@ -91,7 +91,19 @@ BigNum SrpMath::calc_u(const BigNum& A, const BigNum& B, const BigNum& N)
         return BigNum();
     }
 
-    return calc_xy(A, B, N);
+    BigNum u = calc_xy(A, B, N);
+    if (!u.isValid())
+        return BigNum();
+
+    // RFC 5054, 2.5.4: the side that gets u == 0 aborts. With u == 0 the verifier drops out of the
+    // shared secret, and whoever chose A or B could compute it without knowing the password.
+    if (BN_is_zero(u))
+    {
+        LOG(LS_ERROR) << "u == 0 (RFC 5054 violation)";
+        return BigNum();
+    }
+
+    return u;
 }
 
 //--------------------------------------------------------------------------------------------------
