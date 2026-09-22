@@ -1,0 +1,244 @@
+#
+# Builds the Windows installers and the Linux router package, and on a version tag puts them into a
+# draft release. Nothing runs on an ordinary push: a tag "vX.Y.Z" starts a release, and a manual run
+# from the Actions tab builds the same files without releasing them, to try the build out.
+#
+# The first run builds the dependencies from source - Qt5 above all - and takes hours. What vcpkg
+# has built is kept in the Actions cache, also when a run fails or times out, so the next run picks
+# up where the last one stopped and a warm run takes minutes.
+#
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      deps: ${{ steps.version.outputs.deps }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The version lives in CMakeLists.txt and goes into the programs and the installers. A tag
+      # that says something else would publish files that disagree with their own release.
+      - name: Read the version
+        id: version
+        shell: bash
+        run: |
+          major=$(sed -n 's/^set(ASPIA_VERSION_MAJOR \([0-9]*\))$/\1/p' CMakeLists.txt)
+          minor=$(sed -n 's/^set(ASPIA_VERSION_MINOR \([0-9]*\))$/\1/p' CMakeLists.txt)
+          patch=$(sed -n 's/^set(ASPIA_VERSION_PATCH \([0-9]*\))$/\1/p' CMakeLists.txt)
+          version="$major.$minor.$patch"
+          echo "Version: $version"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v$version" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match version $version in CMakeLists.txt"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # The dependencies are fixed by the manifest and by the vcpkg commit; the cache follows both.
+          deps="$(git rev-parse HEAD:vcpkg4aspia)-$(sha256sum vcpkg.json | cut -c1-16)"
+          echo "deps=$deps" >> "$GITHUB_OUTPUT"
+
+  windows:
+    name: windows-x64
+    needs: version
+    runs-on: windows-2022
+    timeout-minutes: 360
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      VCPKG_ROOT: ${{ github.workspace }}\vcpkg4aspia
+      VCPKG_TRIPLET: x64-windows-static
+      VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
+      VCPKG_INSTALLED_DIR: ${{ github.workspace }}\builds\ninja-multi-vcpkg-ci\vcpkg_installed
+      VCPKG_CACHE: C:\vcpkg-cache
+      VCPKG_BINARY_SOURCES: clear;files,C:\vcpkg-cache,readwrite
+      BIN_DIR: ${{ github.workspace }}\builds\ninja-multi-vcpkg-ci\Release
+    steps:
+      # The whole history: the number of commits is the fourth part of the program version.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Restore the vcpkg cache
+        uses: actions/cache/restore@v4
+        with:
+          path: C:\vcpkg-cache
+          key: vcpkg-windows-${{ needs.version.outputs.deps }}-${{ github.run_id }}
+          restore-keys: |
+            vcpkg-windows-${{ needs.version.outputs.deps }}-
+            vcpkg-windows-
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # The runner has MinGW, Strawberry Perl and Git for Windows installed. CMake would find zstd
+      # there and bring MinGW headers into the build, see tools/build/README.md.
+      - name: Configure and install the dependencies
+        id: configure
+        timeout-minutes: 300
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:VCPKG_CACHE | Out-Null
+          cmake --preset ninja-multi-vcpkg-ci `
+            "-DCMAKE_IGNORE_PREFIX_PATH=C:/msys64/mingw64;C:/msys64;C:/mingw64;C:/Strawberry/c;C:/Program Files/Git/mingw64"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Saved whatever happened above, so that hours of building dependencies are not lost to a
+      # timeout or to an error further on.
+      - name: Save the vcpkg cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: C:\vcpkg-cache
+          key: vcpkg-windows-${{ needs.version.outputs.deps }}-${{ github.run_id }}
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build builds/ninja-multi-vcpkg-ci --config Release
+
+      - name: Test
+        shell: pwsh
+        run: ctest --test-dir builds/ninja-multi-vcpkg-ci --build-config Release --output-on-failure
+
+      # installer/build.cmd needs WiX 3 and the MSI scripts of the Windows SDK, and it names an old
+      # SDK that the runner does not have. The newest SDK that has the scripts is used instead.
+      - name: Set up WiX and the Windows SDK scripts
+        shell: pwsh
+        run: |
+          if (-not $env:WIX -or -not (Test-Path "$env:WIX\bin\candle.exe")) {
+            choco install wixtoolset --version 3.14.1 --no-progress -y
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $wix = Get-ChildItem "${env:ProgramFiles(x86)}" -Directory -Filter "WiX Toolset v3*" |
+                   Sort-Object Name -Descending | Select-Object -First 1
+            if (-not $wix) { Write-Error "WiX was not installed"; exit 1 }
+            "WIX=$($wix.FullName)\" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+          $sdk = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Directory -Filter "10.*" |
+                 Where-Object { Test-Path "$($_.FullName)\x86\wisubstg.vbs" } |
+                 Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
+          if (-not $sdk) { Write-Error "No Windows SDK with wisubstg.vbs"; exit 1 }
+          "SDK_VERSION=$($sdk.Name)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build the installers
+        shell: cmd
+        run: call installer\build.cmd %VERSION% x64 "%GITHUB_WORKSPACE%" "%BIN_DIR%"
+
+      # installer/build.cmd does not stop on a failed step, so what it had to make is checked here.
+      - name: Collect the files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $files = "console", "client", "host", "router", "relay" |
+                   ForEach-Object { "aspia-$_-$env:VERSION-x64.msi" }
+          foreach ($file in $files) {
+            $path = Join-Path $env:BIN_DIR $file
+            if (-not (Test-Path $path)) { Write-Error "Missing $file"; exit 1 }
+            Copy-Item $path dist
+          }
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  linux-router:
+    name: linux-router
+    needs: version
+    # The oldest system the router has to run on, see tools/build/README.md.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      VCPKG_CACHE: ${{ github.workspace }}/../vcpkg-cache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/../vcpkg-cache,readwrite
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install the build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build git curl zip unzip tar pkg-config \
+            nasm autoconf autoconf-archive automake libtool python3 bison flex
+
+      - name: Restore the vcpkg cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/../vcpkg-cache
+          key: vcpkg-linux-router-${{ needs.version.outputs.deps }}-${{ github.run_id }}
+          restore-keys: |
+            vcpkg-linux-router-${{ needs.version.outputs.deps }}-
+            vcpkg-linux-router-
+
+      - name: Build, test and package
+        timeout-minutes: 150
+        run: |
+          mkdir -p "$VCPKG_CACHE"
+          tools/build/build_router_linux.sh
+
+      - name: Save the vcpkg cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/../vcpkg-cache
+          key: vcpkg-linux-router-${{ needs.version.outputs.deps }}-${{ github.run_id }}
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-router
+          path: builds/linux-router/*.deb
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: release
+    needs: [version, windows, linux-router]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      # A draft, so that nothing becomes public until a person has looked at it and published it.
+      - name: Create a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --title "Aspia Sync ${{ needs.version.outputs.version }}" \
+            --generate-notes
