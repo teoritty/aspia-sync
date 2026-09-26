@@ -89,6 +89,11 @@ public:
     // the connection comes up, when the book is edited, and when the router says something moved.
     void start(proto::address_book::Data* data);
 
+    // Starts an exchange that sends what putting the book back to |to_revision| wrote into it (see
+    // applyRollback). The batches it sends say so, which is how the history tells a rollback from
+    // an ordinary edit. The label stays until the exchange ends.
+    void startRollback(proto::address_book::Data* data, int64_t to_revision);
+
     // Answers from the router.
     void onPull(const proto::BookPull& page, proto::address_book::Data* data);
     void onPushResult(const proto::BookPushResult& result, proto::address_book::Data* data);
@@ -109,6 +114,7 @@ public:
 
 private:
     void pushOrPull(proto::address_book::Data* data);
+    void finish();
     void requestPull(const proto::address_book::Data& data);
     void noteConflicts(const std::vector<std::string>& guids);
 
@@ -124,6 +130,9 @@ private:
     bool again_ = false;
 
     std::string op_id_;
+
+    // Put on every batch of the running exchange; see startRollback.
+    int64_t rollback_to_ = 0;
 
     // How far into the book the current walk has got. Pages are taken by offset because the
     // revision stays where it was until the last one of them arrives.

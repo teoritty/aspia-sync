@@ -286,6 +286,8 @@ void BookController::onTcpMessageReceived(uint8_t channel_id, const base::ByteAr
             delegate_->onBookPushResult(message->book_push_result());
         else if (message->has_book_changed())
             delegate_->onBookChanged(message->book_changed());
+        else if (message->has_book_history())
+            delegate_->onBookHistory(message->book_history());
         else
             LOG(LS_ERROR) << "Unhandled address book message from the router";
     });
@@ -344,6 +346,14 @@ void BookController::requestPush(const proto::BookPushRequest& request)
 {
     proto::BookClientToRouter message;
     message.mutable_book_push_request()->CopyFrom(request);
+    send(proto::ROUTER_CHANNEL_ID_BOOK, message);
+}
+
+//--------------------------------------------------------------------------------------------------
+void BookController::requestHistory(const proto::BookHistoryRequest& request)
+{
+    proto::BookClientToRouter message;
+    message.mutable_book_history_request()->CopyFrom(request);
     send(proto::ROUTER_CHANNEL_ID_BOOK, message);
 }
 

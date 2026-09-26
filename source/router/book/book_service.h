@@ -25,6 +25,8 @@
 #include <string>
 
 namespace proto {
+class BookHistory;
+class BookHistoryRequest;
 class BookList;
 class BookListRequest;
 class BookPull;
@@ -63,15 +65,26 @@ public:
     // records with a page of comment each are larger than a thousand bare ones.
     static constexpr size_t kMaxPayloadBytesPerPage = 1024 * 1024;
 
+    // The same bounds for a page of the history. Each change there carries up to two payloads, the
+    // record before and after, so the page is counted in batches, in changes and in bytes.
+    static constexpr int64_t kMaxHistoryBatchesPerPage = 50;
+    static constexpr int64_t kMaxHistoryChangesPerPage = 500;
+
     void handleListRequest(const proto::BookListRequest& request, proto::BookList* result);
 
     void handlePullRequest(const proto::BookPullRequest& request, proto::BookPull* result);
 
     // |modified_by| is the name of the computer the session came from. The department shares one
-    // router account, so it is the only thing that can say where a change came from.
+    // router account, so it is the only thing that can say where a change came from. |address| is
+    // where the session connected from, and goes into the history beside it: the name is what the
+    // console says about itself, the address is not.
     void handlePushRequest(const proto::BookPushRequest& request,
                            const std::string& modified_by,
-                           proto::BookPushResult* result);
+                           proto::BookPushResult* result,
+                           const std::string& address = std::string());
+
+    void handleHistoryRequest(const proto::BookHistoryRequest& request,
+                              proto::BookHistory* result);
 
 private:
     BookStore* store_;

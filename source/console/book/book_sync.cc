@@ -59,6 +59,23 @@ void BookSync::start(proto::address_book::Data* data)
 }
 
 //--------------------------------------------------------------------------------------------------
+void BookSync::startRollback(proto::address_book::Data* data, int64_t to_revision)
+{
+    if (!data || data->sync().book_guid().empty())
+        return;
+
+    rollback_to_ = to_revision;
+    start(data);
+}
+
+//--------------------------------------------------------------------------------------------------
+void BookSync::finish()
+{
+    busy_ = false;
+    rollback_to_ = 0;
+}
+
+//--------------------------------------------------------------------------------------------------
 void BookSync::pushOrPull(proto::address_book::Data* data)
 {
     // What was edited here is found by comparing the book with what the router last gave, rather
@@ -70,6 +87,8 @@ void BookSync::pushOrPull(proto::address_book::Data* data)
     proto::BookPushRequest request;
     if (engine_.buildPush(*data, op_id_, &request))
     {
+        request.set_rollback_to_revision(rollback_to_);
+
         // Sending first and asking afterwards. The other way round, an edit made here would be
         // overwritten by the answer before it ever left the machine.
         sender_->sendPush(request);
@@ -117,7 +136,7 @@ void BookSync::onPushResult(const proto::BookPushResult& result, proto::address_
     if (result.error_code() != proto::BOOK_ERROR_CODE_OK)
     {
         LOG(LS_ERROR) << "The router refused the batch: " << result.error_code();
-        busy_ = false;
+        finish();
         return;
     }
 
@@ -142,7 +161,7 @@ void BookSync::onPull(const proto::BookPull& page, proto::address_book::Data* da
     if (page.error_code() != proto::BOOK_ERROR_CODE_OK)
     {
         LOG(LS_ERROR) << "The router refused to send the book: " << page.error_code();
-        busy_ = false;
+        finish();
         return;
     }
 
@@ -156,7 +175,7 @@ void BookSync::onPull(const proto::BookPull& page, proto::address_book::Data* da
         default:
             // Nothing here is helped by asking again: the router was restored from a backup, or
             // the passphrase is wrong. Both need a person.
-            busy_ = false;
+            finish();
             again_ = false;
             observer_->onSyncStopped(outcome.status);
             return;
@@ -195,12 +214,13 @@ void BookSync::onPull(const proto::BookPull& page, proto::address_book::Data* da
 
     if (engine_.buildPush(*data, base::Guid::create().toStdString(), &pending))
     {
+        pending.set_rollback_to_revision(rollback_to_);
         op_id_ = pending.op_id();
         sender_->sendPush(pending);
         return;
     }
 
-    busy_ = false;
+    finish();
 
     if (again_)
     {

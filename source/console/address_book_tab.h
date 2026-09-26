@@ -23,6 +23,7 @@
 #include "client/router_config.h"
 #include "client/online_checker/online_checker.h"
 #include "console/book/book_controller.h"
+#include "console/book/book_history.h"
 #include "console/book/book_sync.h"
 #include "proto/address_book.pb.h"
 #include "ui_address_book_tab.h"
@@ -118,6 +119,32 @@ public:
     // and sends it to the colleagues; otherwise their version is taken and this one given up.
     bool resolveSyncConflict(const QString& guid, bool keep_local);
 
+    //----------------------------------------------------------------------------------------------
+    // History of the shared book.
+    //----------------------------------------------------------------------------------------------
+
+    // Whether the router keeps a history of the book, as its last answer said. Zero days means it
+    // does not - it was told not to, or it is older than the history.
+    int historyDays() const { return history_days_; }
+    int historyMaxChanges() const { return history_max_changes_; }
+
+    // Asks for the newest page of the history, or with |more| for the page after the ones already
+    // here. The answer arrives as sig_historyChanged.
+    void requestHistory(bool more);
+    bool isHistoryLoading() const { return history_asked_before_ >= 0; }
+
+    const HistoryJournal& history() const { return history_; }
+
+    // Whether the book can be put back to |to_revision| now (limited to one record by |guid|), and
+    // what that would do. Nothing is changed.
+    RollbackCheck checkRollback(int64_t to_revision, const QString& guid,
+                                RollbackCounts* counts) const;
+
+    // Puts the book back and sends it. A copy of the file is made first; |backup_path| receives
+    // where it went. Returns NOT_LOADED after asking for the rest of the history it needs, in which
+    // case it has to be called again once sig_historyChanged says it arrived.
+    RollbackCheck rollback(int64_t to_revision, const QString& guid, QString* backup_path);
+
     void retranslateUi();
 
 public slots:
@@ -135,6 +162,7 @@ public slots:
 signals:
     void sig_addressBookChanged(bool changed);
     void sig_syncStatusChanged();
+    void sig_historyChanged();
     void sig_computerGroupActivated(bool activated, bool is_root);
     void sig_computerActivated(bool activated);
     void sig_computerGroupContextMenu(const QPoint& point, bool is_root);
@@ -151,6 +179,7 @@ protected:
     void onBookPull(const proto::BookPull& message) final;
     void onBookPushResult(const proto::BookPushResult& message) final;
     void onBookChanged(const proto::BookChanged& message) final;
+    void onBookHistory(const proto::BookHistory& message) final;
 
     // BookSync::Sender implementation.
     void sendPull(const proto::BookPullRequest& request) final;
@@ -254,6 +283,22 @@ private:
     void startSync(const std::string& key, const client::RouterConfig& router);
     void startSyncIfEnabled();
     void autoSave();
+
+    // A copy of the file before the book is put back, named so it opens like any address book.
+    QString backupBeforeRollback() const;
+
+    // What the router last said about its history; see historyDays.
+    int history_days_ = 0;
+    int history_max_changes_ = 0;
+
+    // The pages of the history fetched so far, and the page on its way: the revision it was asked
+    // from, or -1 when nothing is being asked.
+    HistoryJournal history_;
+    int64_t history_asked_before_ = -1;
+
+    // Set once somebody looked at the history, so that it follows the book from then on. Before
+    // that nobody asked, and fetching it on every change would be traffic for nothing.
+    bool history_followed_ = false;
 
     DISALLOW_COPY_AND_ASSIGN(AddressBookTab);
 };

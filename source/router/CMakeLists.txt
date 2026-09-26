@@ -81,6 +81,7 @@ list(APPEND SOURCE_ROUTER_BOOK_TESTS
 # not there when only the router is built. The store tests still run everywhere.
 if (NOT ASPIA_BUILD_ROUTER_ONLY)
     list(APPEND SOURCE_ROUTER_BOOK_TESTS
+        book/history_roundtrip_unittest.cc
         book/sync_roundtrip_unittest.cc)
     set(ROUTER_TESTS_CONSOLE_LIBS aspia_console_book)
 endif()

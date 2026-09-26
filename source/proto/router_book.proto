@@ -143,6 +143,13 @@ message BookPull
 
     bool has_more = 6;
     repeated BookEntryData entry = 7;
+
+    // How long the router keeps the history of the book (see BookHistoryRequest). Zero means it
+    // keeps none - either it was told not to, or it is older than the history. It rides on every
+    // pull so that a console never asks a router that cannot answer: an old one would leave the
+    // request unanswered rather than refuse it.
+    int32 history_days        = 8;
+    int32 history_max_changes = 9;
 }
 
 message BookChangeData
@@ -172,6 +179,10 @@ message BookPushRequest
     string op_id = 3;
 
     repeated BookChangeData change = 4;
+
+    // Set when the batch puts the book back the way it was at that revision. Only a label for the
+    // history: the changes themselves are ordinary edits, checked like any other.
+    int64 rollback_to_revision = 5;
 }
 
 message BookChangeResult
@@ -201,17 +212,83 @@ message BookChanged
     int64 revision   = 2;
 }
 
+// The history of the book: who changed what and when, so that a deletion nobody owns up to can be
+// traced and undone.
+//
+// The router keeps, for every accepted batch, each record as it was before the batch and as it was
+// after. Both are sealed exactly as in the book itself, so the history tells the router no more
+// than the book does. It is kept for as long as the administrator of the router set, and no longer.
+message BookHistoryRequest
+{
+    int64 request_id = 1;
+    string book_guid = 2;
+
+    // Batches older than this revision, newest first. Zero starts from the newest.
+    int64 before_revision = 3;
+
+    // At most this many batches. The router caps it whatever is asked.
+    int64 count = 4;
+}
+
+message BookHistoryChange
+{
+    string guid        = 1;
+    BookEntryKind kind = 2;
+
+    // The record before and after the batch. |before| is absent for a record the batch created.
+    // A deleted record is a headstone after, and still carries its payload before - which is the
+    // whole point: it is what putting it back is made of.
+    BookEntryData before = 3;
+    BookEntryData after  = 4;
+}
+
+message BookHistoryBatch
+{
+    int64 revision    = 1;
+    int64 server_time = 2;
+
+    // Where the batch came from, as the session knew it: the computer name the console gave when it
+    // signed in, and the address it connected from. Neither is taken from the batch itself.
+    string modified_by = 3;
+    string address     = 4;
+
+    // Non-zero when the batch put the book back to that revision.
+    int64 rollback_to_revision = 5;
+
+    repeated BookHistoryChange change = 6;
+}
+
+message BookHistory
+{
+    int64 request_id         = 1;
+    BookErrorCode error_code = 2;
+    string book_guid         = 3;
+
+    // The current revision of the book, and the oldest one the history still reaches back to: the
+    // book can be put back to any revision from |oldest_revision| on, and to nothing before it.
+    int64 revision        = 4;
+    int64 oldest_revision = 5;
+
+    bool has_more = 6;
+    repeated BookHistoryBatch batch = 7;
+
+    int32 history_days        = 8;
+    int32 history_max_changes = 9;
+}
+
 message RouterToBookClient
 {
     BookList book_list              = 1;
     BookPull book_pull              = 2;
     BookPushResult book_push_result = 3;
     BookChanged book_changed        = 4;
+    BookHistory book_history        = 5;
 }
 
 message BookClientToRouter
 {
-    BookListRequest book_list_request = 1;
-    BookPullRequest book_pull_request = 2;
-    BookPushRequest book_push_request = 3;
+    BookListRequest book_list_request       = 1;
+    BookPullRequest book_pull_request       = 2;
+    BookPushRequest book_push_request       = 3;
+    BookHistoryRequest book_history_request = 4;
 }

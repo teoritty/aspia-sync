@@ -95,6 +95,10 @@ bool SessionClient::ensureBookService()
         return false;
     }
 
+    // The history is kept as the administrator of the router set it. Every session opens a store
+    // of its own, so each is told.
+    book_store_->setHistoryPolicy(server().bookHistoryPolicy());
+
     book_service_ = std::make_unique<BookService>(book_store_.get());
     return true;
 }
@@ -133,7 +137,7 @@ void SessionClient::readBookMessage(const proto::BookClientToRouter& message)
         // The department shares one router account, so the account cannot say who made a change.
         // The computer the session came from can, and that is what is recorded against the record.
         book_service_->handlePushRequest(message.book_push_request(), computerName(),
-                                         reply.mutable_book_push_result());
+                                         reply.mutable_book_push_result(), address());
 
         const proto::BookPushResult& result = reply.book_push_result();
         if (result.error_code() == proto::BOOK_ERROR_CODE_OK)
@@ -143,6 +147,11 @@ void SessionClient::readBookMessage(const proto::BookClientToRouter& message)
             // changed.
             server().onBookChanged(result.book_guid(), result.revision(), sessionId());
         }
+    }
+    else if (message.has_book_history_request())
+    {
+        book_service_->handleHistoryRequest(message.book_history_request(),
+                                            reply.mutable_book_history());
     }
     else
     {

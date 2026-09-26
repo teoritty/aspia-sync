@@ -24,9 +24,13 @@
 #include <QDialog>
 #include <QPointer>
 
+#include <cstdint>
+#include <optional>
+
 class QLabel;
 class QPushButton;
 class QTreeWidget;
+class QTreeWidgetItem;
 
 namespace console {
 
@@ -52,11 +56,33 @@ private slots:
     void onConflictSelectionChanged();
     void onKeepMine();
     void onTakeTheirs();
+    void onHistoryChanged();
+    void onHistorySelectionChanged();
+    void onLoadMoreHistory();
+    void onRollbackBook();
+    void onRestoreRecord();
 
 private:
     void buildUi();
+    QWidget* buildHistoryPage();
     void updateStatus();
+    void updateHistory();
+    void updateHistoryButtons();
     void resolveSelected(bool keep_local);
+
+    // Puts the book (or one record, by |guid|) back to how it was at |to_revision|, after asking.
+    // |what| names the moment for the question. When the history needed is not all here yet it is
+    // asked for, and this runs again once it arrives.
+    void rollbackTo(int64_t to_revision, const QString& guid, const QString& what);
+
+    // The rollback waiting for the rest of the history to arrive.
+    struct PendingRollback
+    {
+        int64_t to_revision = 0;
+        QString guid;
+        QString what;
+    };
+    std::optional<PendingRollback> pending_rollback_;
 
     // The tab outlives the dialog in ordinary use, but a book can be closed from elsewhere while
     // this is open, so it is not held as a bare pointer.
@@ -67,6 +93,14 @@ private:
     QTreeWidget* conflict_tree_ = nullptr;
     QPushButton* keep_mine_button_ = nullptr;
     QPushButton* take_theirs_button_ = nullptr;
+
+    QLabel* history_label_ = nullptr;
+    QTreeWidget* history_tree_ = nullptr;
+    QPushButton* load_more_button_ = nullptr;
+    QPushButton* rollback_button_ = nullptr;
+    QPushButton* restore_button_ = nullptr;
+
+    bool history_requested_ = false;
 
     DISALLOW_COPY_AND_ASSIGN(SyncDialog);
 };

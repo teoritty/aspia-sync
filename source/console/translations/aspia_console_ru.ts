@@ -1097,80 +1097,80 @@
 <context>
     <name>console::AddressBookTab</name>
     <message>
-        <location filename="../address_book_tab.cc" line="245"/>
+        <location filename="../address_book_tab.cc" line="249"/>
         <source>Unable to open address book file &quot;%1&quot;.</source>
         <translation>Не удалось открыть файл адресной книги &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="253"/>
+        <location filename="../address_book_tab.cc" line="257"/>
         <source>Unable to read address book file &quot;%1&quot;.</source>
         <translation>Не удалось прочитать файл адресной книги &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="263"/>
+        <location filename="../address_book_tab.cc" line="267"/>
         <source>The address book file &quot;%1&quot; is corrupted or has an unknown format.</source>
         <translation>Файл адресной книги &quot;%1&quot; поврежден или имеет неизвестный формат.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="310"/>
+        <location filename="../address_book_tab.cc" line="314"/>
         <source>Unable to decrypt the address book with the specified password.</source>
         <translation>Не удалось расшифровать адресную книгу с указанным паролем.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="317"/>
+        <location filename="../address_book_tab.cc" line="321"/>
         <source>The address book file is corrupted or has an unknown format.</source>
         <translation>Файл адресной книги поврежден или имеет неизвестный формат.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="302"/>
+        <location filename="../address_book_tab.cc" line="306"/>
         <source>The address book file is encrypted with an unsupported encryption type.</source>
         <translation>Файл адресной книги зашифрован неподдерживаемым методом шифрования.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="724"/>
+        <location filename="../address_book_tab.cc" line="728"/>
         <source>Are you sure you want to delete computer group &quot;%1&quot; and all child items?</source>
         <translation>Вы действительно хотите удалить группу компьютеров &quot;%1&quot; и все дочерние элементы?</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="728"/>
-        <location filename="../address_book_tab.cc" line="766"/>
+        <location filename="../address_book_tab.cc" line="732"/>
+        <location filename="../address_book_tab.cc" line="770"/>
         <source>Confirmation</source>
         <translation>Подтверждение</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="732"/>
-        <location filename="../address_book_tab.cc" line="770"/>
+        <location filename="../address_book_tab.cc" line="736"/>
+        <location filename="../address_book_tab.cc" line="774"/>
         <source>Yes</source>
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="733"/>
-        <location filename="../address_book_tab.cc" line="771"/>
+        <location filename="../address_book_tab.cc" line="737"/>
+        <location filename="../address_book_tab.cc" line="775"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="762"/>
+        <location filename="../address_book_tab.cc" line="766"/>
         <source>Are you sure you want to delete computer &quot;%1&quot;?</source>
         <translation>Вы действительно хотите удалить компьютер &quot;%1&quot;?</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1121"/>
+        <location filename="../address_book_tab.cc" line="1125"/>
         <source>Online</source>
         <translation>В сети</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1126"/>
+        <location filename="../address_book_tab.cc" line="1130"/>
         <source>Offline</source>
         <translation>Не в сети</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1806"/>
+        <location filename="../address_book_tab.cc" line="1990"/>
         <source>Save Address Book</source>
         <translation>Сохранение адресной книги</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1808"/>
+        <location filename="../address_book_tab.cc" line="1992"/>
         <source>Aspia Address Book (*.aab)</source>
         <translation>Адресная книга Aspia (*.aab)</translation>
     </message>
@@ -1179,28 +1179,28 @@
         <translation type="vanished">Не удалось создать или открыть файл адресной книги.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1833"/>
+        <location filename="../address_book_tab.cc" line="2017"/>
         <source>Unable to write address book file.</source>
         <translation>Не удалось записать файл адресной книги.</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1864"/>
+        <location filename="../address_book_tab.cc" line="2048"/>
         <source>Root Group</source>
         <translation>Корневая группа</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1876"/>
-        <location filename="../address_book_tab.cc" line="1891"/>
+        <location filename="../address_book_tab.cc" line="2060"/>
+        <location filename="../address_book_tab.cc" line="2075"/>
         <source>Warning</source>
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1878"/>
+        <location filename="../address_book_tab.cc" line="2062"/>
         <source>Could not open address book</source>
         <translation>Не удалось открыть адресную книгу</translation>
     </message>
     <message>
-        <location filename="../address_book_tab.cc" line="1893"/>
+        <location filename="../address_book_tab.cc" line="2077"/>
         <source>Failed to save address book</source>
         <translation>Не удалось сохранить адресную книгу</translation>
     </message>
@@ -1760,87 +1760,88 @@ It opens as an ordinary address book.</source>
 <context>
     <name>console::SyncDialog</name>
     <message>
-        <location filename="../sync_dialog.cc" line="56"/>
+        <location filename="../sync_dialog.cc" line="107"/>
         <source>Address Book Synchronization</source>
         <translation>Синхронизация адресной книги</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="74"/>
+        <location filename="../sync_dialog.cc" line="125"/>
         <source>State:</source>
         <translation>Состояние:</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="75"/>
+        <location filename="../sync_dialog.cc" line="126"/>
         <source>Waiting to be sent:</source>
         <translation>Ожидает отправки:</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="79"/>
+        <location filename="../sync_dialog.cc" line="130"/>
         <source>Changes are sent as soon as they are made, and what colleagues change arrives on its own. Nothing has to be saved by hand.</source>
         <translation>Изменения отправляются сразу, а правки коллег приходят сами. Сохранять вручную ничего не нужно.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="86"/>
+        <location filename="../sync_dialog.cc" line="137"/>
         <source>Stop synchronizing this book</source>
         <translation>Прекратить синхронизацию этой книги</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="90"/>
+        <location filename="../sync_dialog.cc" line="141"/>
         <source>State</source>
         <translation>Состояние</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="97"/>
+        <location filename="../sync_dialog.cc" line="148"/>
         <source>These computers were changed here and by somebody else in the same field, so neither version can be taken without losing the other. Until one is chosen, what you see in the book is your own version.</source>
         <translation>Эти компьютеры изменены и здесь, и кем-то ещё в одном и том же поле, поэтому взять одну версию нельзя, не потеряв другую. Пока выбор не сделан, в книге показана ваша версия.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="106"/>
+        <location filename="../sync_dialog.cc" line="157"/>
+        <location filename="../sync_dialog.cc" line="205"/>
         <source>Computer</source>
         <translation>Компьютер</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="115"/>
+        <location filename="../sync_dialog.cc" line="166"/>
         <source>Keep my version</source>
         <translation>Оставить мою версию</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="116"/>
+        <location filename="../sync_dialog.cc" line="167"/>
         <source>Take their version</source>
         <translation>Взять версию коллег</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="127"/>
+        <location filename="../sync_dialog.cc" line="178"/>
         <source>Conflicts</source>
         <translation>Конфликты</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="130"/>
+        <location filename="../sync_dialog.cc" line="182"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="148"/>
+        <location filename="../sync_dialog.cc" line="573"/>
         <source>Not synchronized</source>
         <translation>Не синхронизируется</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="154"/>
+        <location filename="../sync_dialog.cc" line="579"/>
         <source>Stopped. The router was restored from a backup, or the passphrase no longer matches. Join the book again.</source>
         <translation>Остановлено. Роутер восстановлен из резервной копии либо пароль больше не подходит. Присоединитесь к книге заново.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="160"/>
+        <location filename="../sync_dialog.cc" line="585"/>
         <source>Synchronized</source>
         <translation>Синхронизируется</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="165"/>
+        <location filename="../sync_dialog.cc" line="590"/>
         <source>Offline. Changes are kept and will be sent when the router is reachable again.</source>
         <translation>Нет связи. Изменения сохраняются и уйдут, когда роутер снова будет доступен.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="223"/>
+        <location filename="../sync_dialog.cc" line="651"/>
         <source>Replace &quot;%1&quot; with the version your colleagues have?
 
 What you changed here will be lost.</source>
@@ -1849,7 +1850,7 @@ What you changed here will be lost.</source>
 То, что вы изменили здесь, будет потеряно.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="254"/>
+        <location filename="../sync_dialog.cc" line="686"/>
         <source>Stop synchronizing this address book?
 
 The book stays exactly as it is and becomes an ordinary local file again. Changes made here will no longer reach your colleagues, and theirs will no longer reach you.</source>
@@ -1858,7 +1859,7 @@ The book stays exactly as it is and becomes an ordinary local file again. Change
 Книга останется в точности такой, как есть, и снова станет обычным локальным файлом. Ваши изменения перестанут доходить до коллег, а их изменения — до вас.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="262"/>
+        <location filename="../sync_dialog.cc" line="694"/>
         <source>
 
 %1 change(s) have not been sent yet and will stay on this machine only.</source>
@@ -1867,10 +1868,274 @@ The book stays exactly as it is and becomes an ordinary local file again. Change
 Неотправленных изменений: %1. Они останутся только на этой машине.</translation>
     </message>
     <message>
-        <location filename="../sync_dialog.cc" line="222"/>
-        <location filename="../sync_dialog.cc" line="267"/>
+        <location filename="../sync_dialog.cc" line="650"/>
+        <location filename="../sync_dialog.cc" line="699"/>
         <source>Confirmation</source>
         <translation>Подтверждение</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="179"/>
+        <source>Journal</source>
+        <translation>Журнал</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="205"/>
+        <source>When</source>
+        <translation>Когда</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="205"/>
+        <source>Action</source>
+        <translation>Действие</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="205"/>
+        <source>Records</source>
+        <translation>Записи</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="214"/>
+        <source>Load older</source>
+        <translation>Загрузить более ранние</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="215"/>
+        <source>Roll back the book to before this</source>
+        <translation>Откатить книгу до этого изменения</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="216"/>
+        <source>Undo this change of the record</source>
+        <translation>Отменить это изменение записи</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="221"/>
+        <source>Undoes this change and every change made to the book after it, by anybody.</source>
+        <translation>Отменяет это изменение и все изменения книги после него, кто бы их ни сделал.</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="223"/>
+        <source>Puts this one record back the way it was before this change. Nothing else is touched.</source>
+        <translation>Возвращает только эту запись в состояние до этого изменения. Остальное не затрагивается.</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="275"/>
+        <source>The router does not keep a history of this book. It can be switched on in the router configuration (BookHistoryDays).</source>
+        <translation>Роутер не хранит историю этой книги. Её можно включить в конфигурации роутера (BookHistoryDays).</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="281"/>
+        <source>The router keeps the history for %1 day(s), at most %2 changes. Changes are shown with the computer they were made from.</source>
+        <translation>Роутер хранит историю %1 дн., не более %2 изменений. У каждого изменения указан компьютер, с которого оно сделано.</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="288"/>
+        <source>The router keeps the history for %1 day(s). Changes are shown with the computer they were made from.</source>
+        <translation>Роутер хранит историю %1 дн. У каждого изменения указан компьютер, с которого оно сделано.</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="322"/>
+        <source>(unnamed)</source>
+        <translation>(без имени)</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="324"/>
+        <source>Group &quot;%1&quot;</source>
+        <translation>Группа «%1»</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="330"/>
+        <source>Added</source>
+        <translation>Добавлено</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="334"/>
+        <source>Deleted</source>
+        <translation>Удалено</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="338"/>
+        <source>Restored</source>
+        <translation>Восстановлено</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="342"/>
+        <source>Moved</source>
+        <translation>Перемещено</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="346"/>
+        <source>Cannot be read</source>
+        <translation>Не удалось прочитать</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="350"/>
+        <source>Changed</source>
+        <translation>Изменено</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="366"/>
+        <source>%1 (%2)</source>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="379"/>
+        <source>and %1 more</source>
+        <translation>и ещё %1</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="389"/>
+        <source>Rollback to %1</source>
+        <translation>Откат к %1</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="390"/>
+        <source>Rollback to revision %1</source>
+        <translation>Откат к ревизии %1</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="393"/>
+        <source>added: %1</source>
+        <translation>добавлено: %1</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="395"/>
+        <source>changed: %1</source>
+        <translation>изменено: %1</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="397"/>
+        <source>deleted: %1</source>
+        <translation>удалено: %1</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="53"/>
+        <source>name</source>
+        <translation>имя</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="55"/>
+        <source>address</source>
+        <translation>адрес</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="57"/>
+        <source>port</source>
+        <translation>порт</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="59"/>
+        <source>comment</source>
+        <translation>комментарий</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="61"/>
+        <source>user name</source>
+        <translation>имя пользователя</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="63"/>
+        <source>password</source>
+        <translation>пароль</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="65"/>
+        <source>session type</source>
+        <translation>тип сеанса</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="67"/>
+        <source>inheritance</source>
+        <translation>наследование</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="69"/>
+        <source>session settings</source>
+        <translation>параметры сеанса</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="71"/>
+        <source>group</source>
+        <translation>группа</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="463"/>
+        <source>before the change made on %1 from %2</source>
+        <translation>до изменения от %1 с компьютера %2</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="479"/>
+        <source>&quot;%1&quot; before the change made on %2 from %3</source>
+        <translation>«%1» к состоянию до изменения от %2 с компьютера %3</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="508"/>
+        <location filename="../sync_dialog.cc" line="513"/>
+        <location filename="../sync_dialog.cc" line="518"/>
+        <location filename="../sync_dialog.cc" line="533"/>
+        <location filename="../sync_dialog.cc" line="550"/>
+        <location filename="../sync_dialog.cc" line="557"/>
+        <source>Rollback</source>
+        <translation>Откат</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="509"/>
+        <source>The history kept by the router does not reach back that far.</source>
+        <translation>История, которую хранит роутер, не доходит до этого момента.</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="514"/>
+        <source>Nothing has changed since then. There is nothing to roll back.</source>
+        <translation>С тех пор ничего не менялось. Откатывать нечего.</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="519"/>
+        <source>The book is not in step with the router yet: something is waiting to be sent or decided, or colleagues&apos; changes have not arrived. Wait until it is synchronized and try again.</source>
+        <translation>Книга ещё не синхронизирована с роутером: есть неотправленные изменения, неразрешённые конфликты или ещё не пришли изменения коллег. Дождитесь синхронизации и повторите.</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="526"/>
+        <source>Roll back the whole book to how it was %1?</source>
+        <translation>Откатить всю книгу к состоянию %1?</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="527"/>
+        <source>Put back %1?</source>
+        <translation>Вернуть %1?</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="528"/>
+        <source>
+
+Records brought back: %1
+Records removed: %2
+Records changed back: %3</source>
+        <translation>
+
+Будет восстановлено записей: %1
+Будет удалено записей: %2
+Будет возвращено к прежнему виду: %3</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="530"/>
+        <source>
+
+The change reaches your colleagues like any other edit and is recorded in the journal, so it can be undone the same way. A copy of the book file is made first.</source>
+        <translation>
+
+Откат дойдёт до коллег как обычная правка и попадёт в журнал, поэтому его тоже можно будет отменить. Перед откатом будет сделана копия файла книги.</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="551"/>
+        <source>The book could not be rolled back. It has not been changed.</source>
+        <translation>Не удалось откатить книгу. Она не изменена.</translation>
+    </message>
+    <message>
+        <location filename="../sync_dialog.cc" line="558"/>
+        <source>Done. The book as it was before the rollback is kept in:
+%1</source>
+        <translation>Готово. Книга в состоянии до отката сохранена в файле:
+%1</translation>
     </message>
 </context>
 <context>

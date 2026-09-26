@@ -36,8 +36,10 @@
 #include "router/settings.h"
 #include "router/user_list_db.h"
 
+#include <algorithm>
 #include <chrono>
 #include <ctime>
+#include <limits>
 
 namespace router {
 
@@ -173,6 +175,19 @@ bool Server::start()
             LOG(LS_INFO) << "#" << (i + 1) << ": " << relay_white_list_[i];
     }
 
+    book_history_policy_.days = settings.bookHistoryDays();
+    book_history_policy_.max_changes = settings.bookHistoryMaxChanges();
+
+    if (book_history_policy_.enabled())
+    {
+        LOG(LS_INFO) << "Address book history is kept for " << book_history_policy_.days
+                     << " days, at most " << book_history_policy_.max_changes << " changes";
+    }
+    else
+    {
+        LOG(LS_INFO) << "Address book history is not kept";
+    }
+
     base::ByteArray seed_key = settings.seedKey();
     if (seed_key.empty())
     {
@@ -211,16 +226,42 @@ void Server::pruneBooks()
     if (store)
     {
         const int64_t now = static_cast<int64_t>(std::time(nullptr));
+        const int64_t day = 24 * 60 * 60;
+
+        // A record deleted within the history must still have its headstone: putting it back is
+        // written over the headstone, and the router takes that only from somebody who names it.
+        // So headstones live at least as long as the history does, and a day more.
+        int64_t tombstone_retention = kTombstoneRetentionSeconds;
+        if (book_history_policy_.enabled())
+        {
+            tombstone_retention = std::max(tombstone_retention,
+                (static_cast<int64_t>(book_history_policy_.days) + 1) * day);
+        }
+
+        // With the history switched off, what it holds goes too. Somebody who turned it off to
+        // make room would not expect the room to stay taken.
+        const int64_t history_before = book_history_policy_.enabled()
+            ? now - static_cast<int64_t>(book_history_policy_.days) * day
+            : std::numeric_limits<int64_t>::max();
 
         std::vector<Book> books;
         if (store->bookList(&books))
         {
             int64_t removed = 0;
+            int64_t history_removed = 0;
+
             for (const Book& book : books)
-                removed += store->pruneTombstones(book.guid, now - kTombstoneRetentionSeconds);
+            {
+                removed += store->pruneTombstones(book.guid, now - tombstone_retention);
+                history_removed += store->pruneHistory(
+                    book.guid, history_before, book_history_policy_.max_changes);
+            }
 
             if (removed != 0)
                 LOG(LS_INFO) << "Headstones removed: " << removed;
+
+            if (history_removed != 0)
+                LOG(LS_INFO) << "Changes removed from the history: " << history_removed;
         }
         else
         {

@@ -167,13 +167,20 @@ void BookService::handlePullRequest(const proto::BookPullRequest& request, proto
     }
 
     result->set_has_more(has_more);
+
+    // Said on every pull, so the console knows whether to offer the history at all. See
+    // BookPull in router_book.proto for why it is not asked separately.
+    result->set_history_days(store_->historyPolicy().days);
+    result->set_history_max_changes(store_->historyPolicy().max_changes);
+
     result->set_error_code(proto::BOOK_ERROR_CODE_OK);
 }
 
 //--------------------------------------------------------------------------------------------------
 void BookService::handlePushRequest(const proto::BookPushRequest& request,
                                     const std::string& modified_by,
-                                    proto::BookPushResult* result)
+                                    proto::BookPushResult* result,
+                                    const std::string& address)
 {
     DCHECK(result);
 
@@ -183,7 +190,7 @@ void BookService::handlePushRequest(const proto::BookPushRequest& request,
 
     if (request.book_guid().size() > kMaxGuidLength || request.op_id().empty() ||
         request.op_id().size() > kMaxOpIdLength ||
-        request.change_size() > kMaxChangesPerRequest)
+        request.change_size() > kMaxChangesPerRequest || request.rollback_to_revision() < 0)
     {
         result->set_error_code(proto::BOOK_ERROR_CODE_INVALID_REQUEST);
         return;
@@ -220,8 +227,12 @@ void BookService::handlePushRequest(const proto::BookPushRequest& request,
     std::vector<BookChangeResult> results;
     int64_t revision = 0;
 
+    BookBatchNote note;
+    note.address = address;
+    note.rollback_to = request.rollback_to_revision();
+
     if (!store_->applyChanges(request.book_guid(), request.op_id(), modified_by, changes,
-                              &results, &revision))
+                              &results, &revision, note))
     {
         Book book;
         result->set_error_code(store_->findBook(request.book_guid(), &book)
@@ -254,6 +265,94 @@ void BookService::handlePushRequest(const proto::BookPushRequest& request,
     }
 
     result->set_revision(revision);
+    result->set_error_code(proto::BOOK_ERROR_CODE_OK);
+}
+
+//--------------------------------------------------------------------------------------------------
+void BookService::handleHistoryRequest(const proto::BookHistoryRequest& request,
+                                       proto::BookHistory* result)
+{
+    DCHECK(result);
+
+    result->set_request_id(request.request_id());
+    result->set_book_guid(request.book_guid());
+    result->set_history_days(store_->historyPolicy().days);
+    result->set_history_max_changes(store_->historyPolicy().max_changes);
+
+    if (request.book_guid().size() > kMaxGuidLength || request.before_revision() < 0 ||
+        request.count() < 0)
+    {
+        result->set_error_code(proto::BOOK_ERROR_CODE_INVALID_REQUEST);
+        return;
+    }
+
+    Book book;
+    if (!store_->findBook(request.book_guid(), &book))
+    {
+        result->set_error_code(proto::BOOK_ERROR_CODE_NOT_FOUND);
+        return;
+    }
+
+    int64_t oldest = book.revision;
+    if (!store_->oldestHistoryRevision(request.book_guid(), &oldest))
+    {
+        result->set_error_code(proto::BOOK_ERROR_CODE_INTERNAL_ERROR);
+        return;
+    }
+
+    result->set_revision(book.revision);
+    result->set_oldest_revision(oldest);
+
+    int64_t count = request.count();
+    if (count <= 0 || count > kMaxHistoryBatchesPerPage)
+        count = kMaxHistoryBatchesPerPage;
+
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = false;
+
+    if (!store_->historyBefore(request.book_guid(), request.before_revision(), count,
+                               kMaxHistoryChangesPerPage, &batches, &has_more))
+    {
+        result->set_error_code(proto::BOOK_ERROR_CODE_INTERNAL_ERROR);
+        return;
+    }
+
+    size_t bytes = 0;
+    for (const BookHistoryBatch& batch : batches)
+    {
+        // As with a pull: the page also stops on its size, always on a whole batch, and always
+        // after at least one of them.
+        if (bytes >= kMaxPayloadBytesPerPage && result->batch_size() > 0)
+        {
+            has_more = true;
+            break;
+        }
+
+        proto::BookHistoryBatch* out = result->add_batch();
+        out->set_revision(batch.revision);
+        out->set_server_time(batch.server_time);
+        out->set_modified_by(batch.modified_by);
+        out->set_address(batch.address);
+        out->set_rollback_to_revision(batch.rollback_to);
+
+        for (const BookHistoryChange& change : batch.changes)
+        {
+            proto::BookHistoryChange* item = out->add_change();
+            item->set_guid(change.guid);
+            item->set_kind(kindToProto(change.kind));
+
+            if (change.has_before)
+            {
+                entryToProto(change.before, item->mutable_before());
+                bytes += change.before.payload.size();
+            }
+
+            entryToProto(change.after, item->mutable_after());
+            bytes += change.after.payload.size();
+        }
+    }
+
+    result->set_has_more(has_more);
     result->set_error_code(proto::BOOK_ERROR_CODE_OK);
 }
 

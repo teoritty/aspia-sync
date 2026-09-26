@@ -60,6 +60,18 @@ public:
     void setSeedKey(const base::ByteArray& seed_key);
     base::ByteArray seedKey() const;
 
+    // How long the history of the shared address books is kept, in days, and how many changed
+    // records per book it may hold at most. Zero days keeps no history; zero changes sets no limit
+    // by count. See BookHistoryPolicy.
+    static constexpr int kDefaultBookHistoryDays = 30;
+    static constexpr int kDefaultBookHistoryMaxChanges = 10000;
+
+    void setBookHistoryDays(int days);
+    int bookHistoryDays() const;
+
+    void setBookHistoryMaxChanges(int max_changes);
+    int bookHistoryMaxChanges() const;
+
 private:
     void setWhiteList(std::string_view key, const WhiteList& value);
     WhiteList whiteList(std::string_view key) const;

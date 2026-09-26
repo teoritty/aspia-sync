@@ -37,11 +37,15 @@
 #include "console/computer_item.h"
 #include "console/open_address_book_dialog.h"
 #include "console/settings.h"
+#include "console/sync_dialog.h"
 #include "proto/router_book.pb.h"
 #include "qt_base/application.h"
 
 #include <QApplication>
+#include <QDateTime>
+#include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
@@ -1296,6 +1300,13 @@ void AddressBookTab::disableSync()
     sync_connected_ = false;
     sync_stopped_ = false;
 
+    history_.clear();
+    history_asked_before_ = -1;
+    history_followed_ = false;
+    history_days_ = 0;
+    history_max_changes_ = 0;
+    emit sig_historyChanged();
+
     // What was fetched stays. The book becomes an ordinary local file again, which is the way back
     // if any of this turns out to be a bad idea. The key goes with it - there is nothing left for
     // it to open.
@@ -1413,6 +1424,9 @@ void AddressBookTab::onBookConnected()
 void AddressBookTab::onBookDisconnected()
 {
     sync_connected_ = false;
+
+    // Whatever was asked went with the connection.
+    history_asked_before_ = -1;
     emit sig_syncStatusChanged();
 }
 
@@ -1438,6 +1452,25 @@ void AddressBookTab::onBookPull(const proto::BookPull& message)
 
     if (holdWhileDialogIsOpen([this, message]() { onBookPull(message); }))
         return;
+
+    if (message.error_code() == proto::BOOK_ERROR_CODE_OK &&
+        (message.history_days() != history_days_ ||
+         message.history_max_changes() != history_max_changes_))
+    {
+        history_days_ = message.history_days();
+        history_max_changes_ = message.history_max_changes();
+
+        // What was fetched under the old setting may reach back further than the router now
+        // keeps, or be all there is of a history it no longer keeps at all. Showing it would offer
+        // a way back the router cannot follow, so it is dropped and, if somebody is looking,
+        // fetched again. An answer still on its way belongs to the old journal and is ignored.
+        history_.clear();
+        history_asked_before_ = -1;
+        if (history_followed_ && history_days_ > 0)
+            requestHistory(false);
+
+        emit sig_historyChanged();
+    }
 
     book_sync_->onPull(message, &data_);
 }
@@ -1467,9 +1500,155 @@ void AddressBookTab::onBookChanged(const proto::BookChanged& message)
 }
 
 //--------------------------------------------------------------------------------------------------
+void AddressBookTab::onBookHistory(const proto::BookHistory& message)
+{
+    // Not held while a dialog is open: the history is only read, never written into the book, and
+    // the dialog that most likely is open is the one waiting for it.
+    if (message.book_guid() != data_.sync().book_guid() || history_asked_before_ < 0)
+        return;
+
+    const int64_t asked_before = history_asked_before_;
+    history_asked_before_ = -1;
+
+    if (!history_.addPage(message, data_.sync().book_guid(), asked_before,
+                          data_.sync().sync_key()))
+    {
+        LOG(LS_ERROR) << "Unusable page of the book history: " << message.error_code();
+    }
+    else
+    {
+        history_days_ = history_.historyDays();
+        history_max_changes_ = history_.historyMaxChanges();
+    }
+
+    emit sig_historyChanged();
+}
+
+//--------------------------------------------------------------------------------------------------
+void AddressBookTab::requestHistory(bool more)
+{
+    if (!book_controller_ || !sync_connected_ || history_days_ <= 0)
+        return;
+
+    const int64_t before = more ? history_.nextBefore() : 0;
+    if (more && (before == 0 || !history_.hasMore()))
+        return;
+
+    history_followed_ = true;
+    history_asked_before_ = before;
+
+    proto::BookHistoryRequest request;
+    request.set_book_guid(data_.sync().book_guid());
+    request.set_before_revision(before);
+
+    book_controller_->requestHistory(request);
+}
+
+//--------------------------------------------------------------------------------------------------
+RollbackCheck AddressBookTab::checkRollback(int64_t to_revision, const QString& guid,
+                                            RollbackCounts* counts) const
+{
+    RollbackPlan plan;
+    const RollbackCheck check =
+        prepareRollback(history_, data_, to_revision, guid.toStdString(), &plan);
+
+    if (counts)
+    {
+        *counts = RollbackCounts();
+
+        if (check == RollbackCheck::OK)
+        {
+            // Counted on a copy, by the same code that will do it: a count worked out separately
+            // could say one thing and the rollback do another.
+            proto::address_book::Data copy(data_);
+            *counts = applyRollback(plan, &copy);
+        }
+    }
+
+    return check;
+}
+
+//--------------------------------------------------------------------------------------------------
+RollbackCheck AddressBookTab::rollback(int64_t to_revision, const QString& guid,
+                                       QString* backup_path)
+{
+    if (!book_sync_ || !sync_connected_ || sync_stopped_ || book_sync_->isBusy())
+        return RollbackCheck::NOT_IN_STEP;
+
+    RollbackPlan plan;
+    const RollbackCheck check =
+        prepareRollback(history_, data_, to_revision, guid.toStdString(), &plan);
+
+    if (check == RollbackCheck::NOT_LOADED)
+    {
+        requestHistory(true);
+        return check;
+    }
+
+    if (check != RollbackCheck::OK)
+        return check;
+
+    // A way back from the way back. The rollback is in the history and can itself be undone, but
+    // only for as long as the router keeps the history; the copy is kept for as long as the person
+    // wants it.
+    const QString backup = backupBeforeRollback();
+    if (!file_path_.isEmpty() && backup.isEmpty())
+    {
+        LOG(LS_ERROR) << "Unable to back up the book before putting it back";
+        return RollbackCheck::NOT_IN_STEP;
+    }
+
+    if (backup_path)
+        *backup_path = backup;
+
+    const RollbackCounts counts = applyRollback(plan, &data_);
+
+    LOG(LS_INFO) << "Putting the book back to revision " << to_revision << ": "
+                 << counts.restored << " restored, " << counts.removed << " removed, "
+                 << counts.changed << " changed";
+
+    setChanged(true);
+    autoSave();
+
+    // The tree was replaced under the window.
+    reloadAll();
+
+    book_sync_->startRollback(&data_, to_revision);
+
+    emit sig_syncStatusChanged();
+    return RollbackCheck::OK;
+}
+
+//--------------------------------------------------------------------------------------------------
+QString AddressBookTab::backupBeforeRollback() const
+{
+    if (file_path_.isEmpty())
+        return QString();
+
+    const QFileInfo info(file_path_);
+
+    // Always a new name: an older copy is from an earlier rollback and may be the only place
+    // something is still kept.
+    const QString backup_path = info.absolutePath() + QLatin1Char('/') +
+        info.completeBaseName() + QLatin1String(".before-rollback-") +
+        QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss")) +
+        QLatin1String(".aab");
+
+    if (!QFile::copy(file_path_, backup_path))
+        return QString();
+
+    return backup_path;
+}
+
+//--------------------------------------------------------------------------------------------------
 bool AddressBookTab::holdWhileDialogIsOpen(std::function<void()> again)
 {
-    if (!QApplication::activeModalWidget())
+    // The synchronization window is the one dialog that is safe to change the book under: it holds
+    // no record, only guids, and it is where the exchange is watched. Held while it is open, a
+    // rollback made from its journal would not even be sent until it is closed, and the journal
+    // it was made from would never show it.
+    QWidget* modal = QApplication::activeModalWidget();
+    if (!modal || qobject_cast<SyncDialog*>(modal))
     {
         if (holding_)
         {
@@ -1546,12 +1725,17 @@ void AddressBookTab::onSyncStopped(SyncEngine::PullOutcome::Status reason)
 }
 
 //--------------------------------------------------------------------------------------------------
-void AddressBookTab::onInSync(int64_t /* revision */)
+void AddressBookTab::onInSync(int64_t revision)
 {
     // Nothing is waiting any more, and the revision that says so is worth keeping: the next start
     // then asks for what happened since, rather than for the whole book.
     setChanged(true);
     autoSave();
+
+    // The history somebody is looking at is behind the book now. Fetched again from the newest,
+    // which also keeps a rollback from being planned on a journal that misses the latest batch.
+    if (history_followed_ && revision != history_.revision() && history_asked_before_ < 0)
+        requestHistory(false);
 
     emit sig_syncStatusChanged();
 }

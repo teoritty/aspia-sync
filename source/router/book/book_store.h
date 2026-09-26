@@ -131,6 +131,57 @@ struct BookChangeResult
     BookEntry current;
 };
 
+// How much of the history of the books the router keeps. Set by the administrator of the router,
+// who is the one who knows how much room the disk has.
+struct BookHistoryPolicy
+{
+    // Batches older than this are dropped. Zero keeps no history at all: nothing is written, and
+    // what was written before goes at the next sweep.
+    int days = 0;
+
+    // And at most this many changed records per book, whatever their age. Zero means no limit by
+    // count. Whole batches go, never part of one: a batch half remembered could not be undone.
+    int max_changes = 0;
+
+    bool enabled() const { return days > 0; }
+};
+
+// Where a batch came from, as the session knows it rather than as the console says.
+struct BookBatchNote
+{
+    // The address the session connected from. The computer name is given by the console itself
+    // when it signs in, and the department shares one account; the address is the one thing about
+    // the author the console does not get to choose.
+    std::string address;
+
+    // The revision the batch puts the book back to, or 0. A label for the history only; the store
+    // checks nothing on its account beyond it being a revision that has been.
+    int64_t rollback_to = 0;
+};
+
+// One record changed by a batch, as it was before the batch and as it was after it.
+struct BookHistoryChange
+{
+    std::string guid;
+    BookEntry::Kind kind = BookEntry::Kind::GROUP;
+
+    // False when the batch created the record.
+    bool has_before = false;
+    BookEntry before;
+    BookEntry after;
+};
+
+struct BookHistoryBatch
+{
+    int64_t revision = 0;
+    int64_t server_time = 0;
+    std::string modified_by;
+    std::string address;
+    int64_t rollback_to = 0;
+
+    std::vector<BookHistoryChange> changes;
+};
+
 class BookStore
 {
 public:
@@ -170,12 +221,38 @@ public:
     //
     // Returns false only when the database itself refused. Changes the store declined are reported
     // through |results|, which always holds one entry per requested change, in order.
+    //
+    // While the history is kept (see setHistoryPolicy), the batch is written to it in the same
+    // transaction: every record as it was before and as it is after. A batch in the book and not
+    // in its history would be a change nobody could trace or undo.
     bool applyChanges(const std::string& book_guid,
                       const std::string& op_id,
                       const std::string& modified_by,
                       const std::vector<BookChange>& changes,
                       std::vector<BookChangeResult>* results,
-                      int64_t* new_revision);
+                      int64_t* new_revision,
+                      const BookBatchNote& note = BookBatchNote());
+
+    // History.
+    void setHistoryPolicy(const BookHistoryPolicy& policy) { history_policy_ = policy; }
+    const BookHistoryPolicy& historyPolicy() const { return history_policy_; }
+
+    // Batches older than |before_revision|, newest first; 0 starts from the newest. Stops after
+    // |max_batches| batches, or once |max_changes| changed records have been taken - but always
+    // takes at least one whole batch, or a batch larger than the budget would never be shown.
+    // |has_more| says whether anything older is left.
+    bool historyBefore(const std::string& book_guid, int64_t before_revision,
+                       int64_t max_batches, int64_t max_changes,
+                       std::vector<BookHistoryBatch>* out, bool* has_more) const;
+
+    // The oldest revision the book can be put back to: every batch after it is in the history.
+    // Equal to the current revision when there is nothing to go back through - no history at all,
+    // or a gap in it left by a time it was switched off.
+    bool oldestHistoryRevision(const std::string& book_guid, int64_t* out) const;
+
+    // Drops batches older than |before| from the history, and then the oldest batches beyond
+    // |max_changes| changed records (0: no limit). Returns the number of changes removed.
+    int64_t pruneHistory(const std::string& book_guid, int64_t before, int64_t max_changes);
 
     // Drops headstones older than |before|. The interval has to be longer than the longest a
     // console may stay offline, or one coming back would resurrect what was deleted while it was
@@ -192,8 +269,11 @@ private:
 
     bool createTables();
     bool bookIdByGuid(const std::string& guid, int64_t* book_id) const;
+    int64_t pruneHistoryThrough(int64_t book_id, int64_t revision);
+    int64_t pruneHistoryByCount(int64_t book_id, int64_t max_changes);
 
     sqlite3* db_;
+    BookHistoryPolicy history_policy_;
 
     DISALLOW_COPY_AND_ASSIGN(BookStore);
 };

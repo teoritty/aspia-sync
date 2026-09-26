@@ -34,6 +34,8 @@ class ClientAuthenticator;
 
 namespace proto {
 class BookChanged;
+class BookHistory;
+class BookHistoryRequest;
 class BookList;
 class BookPull;
 class BookPullRequest;
@@ -98,6 +100,9 @@ public:
         // for what is missing.
         virtual void onBookChanged(const proto::BookChanged& message) = 0;
 
+        // A page of the history of the book.
+        virtual void onBookHistory(const proto::BookHistory& /* message */) {}
+
         // The answer to creating a book. |guid| is empty when it was refused.
         virtual void onBookCreated(const std::string& guid, const std::string& error) {}
     };
@@ -110,6 +115,7 @@ public:
     void requestBookList(int64_t request_id);
     void requestPull(const proto::BookPullRequest& request);
     void requestPush(const proto::BookPushRequest& request);
+    void requestHistory(const proto::BookHistoryRequest& request);
 
     // Administrator only. The salt and the verifier are made here; the router never holds the
     // passphrase they come from.

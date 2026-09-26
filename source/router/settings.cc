@@ -59,6 +59,8 @@ void Settings::reset()
     setHostWhiteList(WhiteList());
     setAdminWhiteList(WhiteList());
     setRelayWhiteList(WhiteList());
+    setBookHistoryDays(kDefaultBookHistoryDays);
+    setBookHistoryMaxChanges(kDefaultBookHistoryMaxChanges);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -149,6 +151,34 @@ void Settings::setRelayWhiteList(const WhiteList& list)
 Settings::WhiteList Settings::relayWhiteList() const
 {
     return whiteList("RelayWhiteList");
+}
+
+//--------------------------------------------------------------------------------------------------
+void Settings::setBookHistoryDays(int days)
+{
+    impl_.set<int>("BookHistoryDays", days);
+}
+
+//--------------------------------------------------------------------------------------------------
+int Settings::bookHistoryDays() const
+{
+    // A configuration written before the history existed has no such key, and gets the history
+    // anyway: that is what an accidental deletion has to be undone from.
+    const int days = impl_.get<int>("BookHistoryDays", kDefaultBookHistoryDays);
+    return days < 0 ? 0 : days;
+}
+
+//--------------------------------------------------------------------------------------------------
+void Settings::setBookHistoryMaxChanges(int max_changes)
+{
+    impl_.set<int>("BookHistoryMaxChanges", max_changes);
+}
+
+//--------------------------------------------------------------------------------------------------
+int Settings::bookHistoryMaxChanges() const
+{
+    const int max_changes = impl_.get<int>("BookHistoryMaxChanges", kDefaultBookHistoryMaxChanges);
+    return max_changes < 0 ? 0 : max_changes;
 }
 
 //--------------------------------------------------------------------------------------------------

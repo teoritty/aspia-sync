@@ -24,6 +24,7 @@
 #include "base/peer/server_authenticator_manager.h"
 #include "build/build_config.h"
 #include "proto/router_admin.pb.h"
+#include "router/book/book_store.h"
 #include "router/session.h"
 #include "router/shared_key_pool.h"
 
@@ -57,6 +58,9 @@ public:
 
     SessionHost* hostSessionById(base::HostId host_id);
     Session* sessionById(Session::SessionId session_id);
+
+    // How much of the history of the shared books to keep, as the configuration says.
+    const BookHistoryPolicy& bookHistoryPolicy() const { return book_history_policy_; }
 
 protected:
     // base::TcpServer::Delegate implementation.
@@ -96,6 +100,8 @@ private:
     std::vector<std::u16string> host_white_list_;
     std::vector<std::u16string> admin_white_list_;
     std::vector<std::u16string> relay_white_list_;
+
+    BookHistoryPolicy book_history_policy_;
 
     DISALLOW_COPY_AND_ASSIGN(Server);
 };

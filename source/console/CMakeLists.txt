@@ -128,6 +128,8 @@ endif()
 list(APPEND SOURCE_CONSOLE_BOOK
     book/book_controller.cc
     book/book_controller.h
+    book/book_history.cc
+    book/book_history.h
     book/book_sync.cc
     book/book_sync.h
     book/entry_guid.cc
@@ -146,6 +148,7 @@ list(APPEND SOURCE_CONSOLE_BOOK
     book/sync_key.h)
 
 list(APPEND SOURCE_CONSOLE_BOOK_TESTS
+    book/book_history_unittest.cc
     book/book_sync_unittest.cc
     book/entry_guid_unittest.cc
     book/flat_book_unittest.cc

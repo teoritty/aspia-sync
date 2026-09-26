@@ -562,4 +562,346 @@ TEST_F(BookStoreTest, records_survive_a_reopen)
     EXPECT_EQ(entry.payload, "payload");
 }
 
+//--------------------------------------------------------------------------------------------------
+// History.
+//--------------------------------------------------------------------------------------------------
+
+namespace {
+
+BookHistoryPolicy keepHistory(int max_changes = 0)
+{
+    BookHistoryPolicy policy;
+    policy.days = 30;
+    policy.max_changes = max_changes;
+    return policy;
+}
+
+} // namespace
+
+//--------------------------------------------------------------------------------------------------
+TEST_F(BookStoreTest, no_history_is_written_while_it_is_off)
+{
+    put(guid(), std::string(), BookEntry::Kind::GROUP, 0, "payload");
+
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = true;
+    ASSERT_TRUE(store_->historyBefore(kBookGuid, 0, 10, 0, &batches, &has_more));
+
+    EXPECT_TRUE(batches.empty());
+    EXPECT_FALSE(has_more);
+
+    // With nothing to go back through, the oldest reachable point is where the book is now.
+    int64_t oldest = -1;
+    ASSERT_TRUE(store_->oldestHistoryRevision(kBookGuid, &oldest));
+    EXPECT_EQ(oldest, 1);
+}
+
+//--------------------------------------------------------------------------------------------------
+TEST_F(BookStoreTest, every_batch_is_written_with_before_and_after)
+{
+    store_->setHistoryPolicy(keepHistory());
+
+    const std::string entry_guid = guid();
+    const int64_t created = put(entry_guid, std::string(), BookEntry::Kind::COMPUTER, 0, "one");
+    const int64_t edited = put(entry_guid, std::string(), BookEntry::Kind::COMPUTER, created, "two");
+
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = true;
+    ASSERT_TRUE(store_->historyBefore(kBookGuid, 0, 10, 0, &batches, &has_more));
+    ASSERT_EQ(batches.size(), 2u);
+    EXPECT_FALSE(has_more);
+
+    // Newest first.
+    EXPECT_EQ(batches[0].revision, edited);
+    EXPECT_EQ(batches[1].revision, created);
+    EXPECT_EQ(batches[0].modified_by, "PC-TEST");
+
+    ASSERT_EQ(batches[1].changes.size(), 1u);
+    EXPECT_FALSE(batches[1].changes[0].has_before);
+    EXPECT_EQ(batches[1].changes[0].after.payload, "one");
+
+    ASSERT_EQ(batches[0].changes.size(), 1u);
+    const BookHistoryChange& change = batches[0].changes[0];
+    EXPECT_EQ(change.guid, entry_guid);
+    EXPECT_EQ(change.kind, BookEntry::Kind::COMPUTER);
+    EXPECT_TRUE(change.has_before);
+    EXPECT_EQ(change.before.payload, "one");
+    EXPECT_EQ(change.before.revision, created);
+    EXPECT_EQ(change.after.payload, "two");
+    EXPECT_EQ(change.after.revision, edited);
+
+    int64_t oldest = -1;
+    ASSERT_TRUE(store_->oldestHistoryRevision(kBookGuid, &oldest));
+    EXPECT_EQ(oldest, 0);
+}
+
+//--------------------------------------------------------------------------------------------------
+// The one thing the history is for: the content of a deleted record is still there.
+TEST_F(BookStoreTest, a_deleted_record_keeps_its_payload_in_the_history)
+{
+    store_->setHistoryPolicy(keepHistory());
+
+    const std::string entry_guid = guid();
+    const int64_t created = put(entry_guid, std::string(), BookEntry::Kind::COMPUTER, 0, "sealed");
+
+    BookChange change;
+    change.guid = entry_guid;
+    change.kind = BookEntry::Kind::COMPUTER;
+    change.base_revision = created;
+    change.deleted = true;
+
+    std::vector<BookChangeResult> results;
+    int64_t revision = 0;
+    ASSERT_TRUE(store_->applyChanges(kBookGuid, guid(), "PC-VANYA", { change }, &results,
+                                     &revision, BookBatchNote{ "10.0.0.7", 0 }));
+
+    // The book itself keeps nothing of it.
+    BookEntry entry;
+    ASSERT_TRUE(store_->findEntry(kBookGuid, entry_guid, &entry));
+    EXPECT_TRUE(entry.deleted);
+    EXPECT_TRUE(entry.payload.empty());
+
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = false;
+    ASSERT_TRUE(store_->historyBefore(kBookGuid, 0, 1, 0, &batches, &has_more));
+    ASSERT_EQ(batches.size(), 1u);
+    EXPECT_TRUE(has_more);
+
+    EXPECT_EQ(batches[0].modified_by, "PC-VANYA");
+    EXPECT_EQ(batches[0].address, "10.0.0.7");
+    ASSERT_EQ(batches[0].changes.size(), 1u);
+    EXPECT_EQ(batches[0].changes[0].before.payload, "sealed");
+    EXPECT_FALSE(batches[0].changes[0].before.deleted);
+    EXPECT_TRUE(batches[0].changes[0].after.deleted);
+    EXPECT_TRUE(batches[0].changes[0].after.payload.empty());
+}
+
+//--------------------------------------------------------------------------------------------------
+TEST_F(BookStoreTest, a_rollback_label_is_kept_only_when_it_names_a_revision_that_has_been)
+{
+    store_->setHistoryPolicy(keepHistory());
+
+    const std::string entry_guid = guid();
+    const int64_t first = put(entry_guid, std::string(), BookEntry::Kind::GROUP, 0, "one");
+
+    auto apply = [&](int64_t base, int64_t rollback_to)
+    {
+        BookChange change;
+        change.guid = entry_guid;
+        change.base_revision = base;
+        change.payload = "again";
+
+        std::vector<BookChangeResult> results;
+        int64_t revision = 0;
+        EXPECT_TRUE(store_->applyChanges(kBookGuid, guid(), "PC-TEST", { change }, &results,
+                                         &revision, BookBatchNote{ std::string(), rollback_to }));
+        return revision;
+    };
+
+    const int64_t second = apply(first, first);
+    const int64_t third = apply(second, 999); // A revision the book never was at.
+
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = false;
+    ASSERT_TRUE(store_->historyBefore(kBookGuid, 0, 10, 0, &batches, &has_more));
+    ASSERT_EQ(batches.size(), 3u);
+
+    EXPECT_EQ(batches[0].revision, third);
+    EXPECT_EQ(batches[0].rollback_to, 0);
+    EXPECT_EQ(batches[1].revision, second);
+    EXPECT_EQ(batches[1].rollback_to, first);
+}
+
+//--------------------------------------------------------------------------------------------------
+TEST_F(BookStoreTest, a_refused_change_leaves_no_trace_in_the_history)
+{
+    store_->setHistoryPolicy(keepHistory());
+
+    const std::string entry_guid = guid();
+    put(entry_guid, std::string(), BookEntry::Kind::GROUP, 0, "one");
+
+    // Built on a revision that is not current: refused, and nothing written.
+    put(entry_guid, std::string(), BookEntry::Kind::GROUP, 0, "two",
+        BookChangeResult::Status::CONFLICT);
+
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = false;
+    ASSERT_TRUE(store_->historyBefore(kBookGuid, 0, 10, 0, &batches, &has_more));
+    EXPECT_EQ(batches.size(), 1u);
+}
+
+//--------------------------------------------------------------------------------------------------
+TEST_F(BookStoreTest, pages_of_the_history_follow_each_other)
+{
+    store_->setHistoryPolicy(keepHistory());
+
+    for (int i = 0; i < 7; ++i)
+        put(guid(), std::string(), BookEntry::Kind::GROUP, 0, "payload");
+
+    std::set<int64_t> seen;
+    int64_t before = 0;
+
+    for (int page = 0; page < 10; ++page)
+    {
+        std::vector<BookHistoryBatch> batches;
+        bool has_more = false;
+        ASSERT_TRUE(store_->historyBefore(kBookGuid, before, 3, 0, &batches, &has_more));
+
+        for (const BookHistoryBatch& batch : batches)
+            EXPECT_TRUE(seen.insert(batch.revision).second) << "seen twice: " << batch.revision;
+
+        if (!has_more)
+            break;
+
+        ASSERT_FALSE(batches.empty());
+        before = batches.back().revision;
+    }
+
+    EXPECT_EQ(seen.size(), 7u);
+}
+
+//--------------------------------------------------------------------------------------------------
+// The page also stops on the number of changes in it, but never in the middle of a batch.
+TEST_F(BookStoreTest, a_page_of_the_history_ends_on_a_whole_batch)
+{
+    store_->setHistoryPolicy(keepHistory());
+
+    for (int i = 0; i < 3; ++i)
+    {
+        std::vector<BookChange> changes;
+        for (int j = 0; j < 4; ++j)
+        {
+            BookChange change;
+            change.guid = guid();
+            change.payload = "payload";
+            changes.push_back(change);
+        }
+
+        std::vector<BookChangeResult> results;
+        int64_t revision = 0;
+        ASSERT_TRUE(store_->applyChanges(kBookGuid, guid(), "PC-TEST", changes, &results,
+                                         &revision));
+    }
+
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = false;
+    ASSERT_TRUE(store_->historyBefore(kBookGuid, 0, 10, 5, &batches, &has_more));
+
+    ASSERT_EQ(batches.size(), 2u);
+    EXPECT_TRUE(has_more);
+    EXPECT_EQ(batches[0].changes.size(), 4u);
+    EXPECT_EQ(batches[1].changes.size(), 4u);
+}
+
+//--------------------------------------------------------------------------------------------------
+TEST_F(BookStoreTest, the_history_is_kept_within_its_count_by_whole_batches)
+{
+    store_->setHistoryPolicy(keepHistory(5));
+
+    for (int i = 0; i < 4; ++i)
+    {
+        std::vector<BookChange> changes;
+        for (int j = 0; j < 2; ++j)
+        {
+            BookChange change;
+            change.guid = guid();
+            change.payload = "payload";
+            changes.push_back(change);
+        }
+
+        std::vector<BookChangeResult> results;
+        int64_t revision = 0;
+        ASSERT_TRUE(store_->applyChanges(kBookGuid, guid(), "PC-TEST", changes, &results,
+                                         &revision));
+    }
+
+    // Four batches of two. Five changes fit two whole batches; the third would be cut in half,
+    // so it goes entirely.
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = false;
+    ASSERT_TRUE(store_->historyBefore(kBookGuid, 0, 10, 0, &batches, &has_more));
+
+    ASSERT_EQ(batches.size(), 2u);
+    EXPECT_EQ(batches[0].revision, 4);
+    EXPECT_EQ(batches[1].revision, 3);
+
+    int64_t oldest = -1;
+    ASSERT_TRUE(store_->oldestHistoryRevision(kBookGuid, &oldest));
+    EXPECT_EQ(oldest, 2);
+}
+
+//--------------------------------------------------------------------------------------------------
+TEST_F(BookStoreTest, the_history_is_pruned_by_age)
+{
+    store_->setHistoryPolicy(keepHistory());
+
+    put(guid(), std::string(), BookEntry::Kind::GROUP, 0, "payload");
+    put(guid(), std::string(), BookEntry::Kind::GROUP, 0, "payload");
+
+    // Nothing is old enough yet.
+    EXPECT_EQ(store_->pruneHistory(kBookGuid, 1, 0), 0);
+
+    // Everything is, now.
+    EXPECT_EQ(store_->pruneHistory(kBookGuid, std::numeric_limits<int64_t>::max(), 0), 2);
+
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = false;
+    ASSERT_TRUE(store_->historyBefore(kBookGuid, 0, 10, 0, &batches, &has_more));
+    EXPECT_TRUE(batches.empty());
+
+    int64_t oldest = -1;
+    ASSERT_TRUE(store_->oldestHistoryRevision(kBookGuid, &oldest));
+    EXPECT_EQ(oldest, 2);
+}
+
+//--------------------------------------------------------------------------------------------------
+// Switched off and on again: the batches made in between are not in the history, and nothing
+// before them can be undone correctly.
+TEST_F(BookStoreTest, a_gap_in_the_history_is_as_far_back_as_it_reaches)
+{
+    store_->setHistoryPolicy(keepHistory());
+    put(guid(), std::string(), BookEntry::Kind::GROUP, 0, "one");
+
+    store_->setHistoryPolicy(BookHistoryPolicy());
+    put(guid(), std::string(), BookEntry::Kind::GROUP, 0, "two");
+
+    store_->setHistoryPolicy(keepHistory());
+    put(guid(), std::string(), BookEntry::Kind::GROUP, 0, "three");
+
+    int64_t oldest = -1;
+    ASSERT_TRUE(store_->oldestHistoryRevision(kBookGuid, &oldest));
+    EXPECT_EQ(oldest, 2);
+}
+
+//--------------------------------------------------------------------------------------------------
+TEST_F(BookStoreTest, removing_a_book_takes_its_history_with_it)
+{
+    store_->setHistoryPolicy(keepHistory());
+    put(guid(), std::string(), BookEntry::Kind::GROUP, 0, "payload");
+
+    ASSERT_TRUE(store_->removeBook(kBookGuid));
+
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = false;
+    EXPECT_FALSE(store_->historyBefore(kBookGuid, 0, 10, 0, &batches, &has_more));
+}
+
+//--------------------------------------------------------------------------------------------------
+// A database made before the history existed gains its tables when opened, and the book in it
+// carries on from where it was.
+TEST_F(BookStoreTest, the_history_survives_a_reopen)
+{
+    store_->setHistoryPolicy(keepHistory());
+    put(guid(), std::string(), BookEntry::Kind::GROUP, 0, "payload");
+
+    store_.reset();
+    store_ = BookStore::open(path_);
+    ASSERT_TRUE(store_);
+
+    std::vector<BookHistoryBatch> batches;
+    bool has_more = false;
+    ASSERT_TRUE(store_->historyBefore(kBookGuid, 0, 10, 0, &batches, &has_more));
+    EXPECT_EQ(batches.size(), 1u);
+}
+
 } // namespace router

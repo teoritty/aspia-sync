@@ -23,7 +23,9 @@
 #include <sqlite3.h>
 
 #include <cctype>
+#include <cstdint>
 #include <ctime>
+#include <limits>
 #include <set>
 
 namespace router {
@@ -241,6 +243,34 @@ bool BookStore::createTables()
             "\"applied_at\" INTEGER NOT NULL DEFAULT 0,"
             "\"revision\" INTEGER NOT NULL DEFAULT 0,"
             "PRIMARY KEY(\"book_id\",\"op_id\"));"
+        // The history: one row per accepted batch, and one per record it changed, holding the
+        // record as it was before and as it was after. The payloads are sealed exactly as in
+        // book_entries; nothing here is readable that the book itself would not give away.
+        "CREATE TABLE IF NOT EXISTS \"book_batches\" ("
+            "\"book_id\" INTEGER NOT NULL REFERENCES \"books\"(\"book_id\") ON DELETE CASCADE,"
+            "\"revision\" INTEGER NOT NULL,"
+            "\"server_time\" INTEGER NOT NULL DEFAULT 0,"
+            "\"modified_by\" TEXT NOT NULL DEFAULT '',"
+            "\"address\" TEXT NOT NULL DEFAULT '',"
+            "\"rollback_to\" INTEGER NOT NULL DEFAULT 0,"
+            "PRIMARY KEY(\"book_id\",\"revision\"));"
+        "CREATE TABLE IF NOT EXISTS \"book_history\" ("
+            "\"book_id\" INTEGER NOT NULL REFERENCES \"books\"(\"book_id\") ON DELETE CASCADE,"
+            "\"revision\" INTEGER NOT NULL,"
+            "\"guid\" TEXT NOT NULL,"
+            "\"kind\" INTEGER NOT NULL DEFAULT 0,"
+            "\"before_exists\" INTEGER NOT NULL DEFAULT 0,"
+            "\"before_kind\" INTEGER NOT NULL DEFAULT 0,"
+            "\"before_parent_guid\" TEXT NOT NULL DEFAULT '',"
+            "\"before_revision\" INTEGER NOT NULL DEFAULT 0,"
+            "\"before_server_time\" INTEGER NOT NULL DEFAULT 0,"
+            "\"before_modified_by\" TEXT NOT NULL DEFAULT '',"
+            "\"before_deleted\" INTEGER NOT NULL DEFAULT 0,"
+            "\"before_payload\" BLOB NOT NULL,"
+            "\"after_parent_guid\" TEXT NOT NULL DEFAULT '',"
+            "\"after_deleted\" INTEGER NOT NULL DEFAULT 0,"
+            "\"after_payload\" BLOB NOT NULL,"
+            "PRIMARY KEY(\"book_id\",\"revision\",\"guid\"));"
         "COMMIT;";
 
     return exec(db_, kSql);
@@ -540,7 +570,8 @@ bool BookStore::applyChanges(const std::string& book_guid,
                              const std::string& modified_by,
                              const std::vector<BookChange>& changes,
                              std::vector<BookChangeResult>* results,
-                             int64_t* new_revision)
+                             int64_t* new_revision,
+                             const BookBatchNote& note)
 {
     if (!results || !new_revision || op_id.empty())
         return false;
@@ -602,6 +633,7 @@ bool BookStore::applyChanges(const std::string& book_guid,
 
     const int64_t revision = book.revision + 1;
     const int64_t now = currentTime();
+    const bool keep_history = history_policy_.enabled();
 
     if (!exec(db_, "BEGIN IMMEDIATE TRANSACTION"))
         return false;
@@ -650,9 +682,16 @@ bool BookStore::applyChanges(const std::string& book_guid,
             continue;
         }
 
-        // A headstone keeps no payload. The content is of no use once the record is gone, and
-        // keeping a sealed password around for the months a headstone lives would be careless.
+        // A headstone keeps no payload. The content is of no use to the book once the record is
+        // gone, and keeping a sealed password around for the months a headstone lives would be
+        // careless. The history does keep it, for as long as the administrator set and no longer:
+        // there it is what an accidental deletion is undone from.
         const std::string payload = change.deleted ? std::string() : change.payload;
+
+        // A deletion comes with the guid alone: the console does not say what it deletes. The
+        // record stays what it was, or its headstone and its history would call a computer a
+        // group, and the history would open its payload as the wrong kind of record.
+        const BookEntry::Kind kind = (change.deleted && exists) ? current.kind : change.kind;
 
         if (!change.deleted && payload.empty())
         {
@@ -675,7 +714,7 @@ bool BookStore::applyChanges(const std::string& book_guid,
             !statement.bindInt64(1, book_id) ||
             !statement.bindText(2, change.guid) ||
             !statement.bindText(3, change.parent_guid) ||
-            !statement.bindInt64(4, change.kind == BookEntry::Kind::COMPUTER ? 1 : 0) ||
+            !statement.bindInt64(4, kind == BookEntry::Kind::COMPUTER ? 1 : 0) ||
             !statement.bindInt64(5, revision) ||
             !statement.bindInt64(6, now) ||
             !statement.bindInt64(7, change.client_time) ||
@@ -692,6 +731,42 @@ bool BookStore::applyChanges(const std::string& book_guid,
         {
             exec(db_, "ROLLBACK");
             return false;
+        }
+
+        if (keep_history)
+        {
+            // What the record was is exactly what the upsert above wrote over, and it is only
+            // here, in |current|, for the length of this call. A record deleted by this batch
+            // keeps its payload in the "before" half, which is what makes putting it back
+            // possible.
+            Statement history(db_,
+                "INSERT OR REPLACE INTO book_history (book_id, revision, guid, kind, "
+                "before_exists, before_kind, before_parent_guid, before_revision, "
+                "before_server_time, before_modified_by, before_deleted, before_payload, "
+                "after_parent_guid, after_deleted, after_payload) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+            if (!history.isValid() ||
+                !history.bindInt64(1, book_id) ||
+                !history.bindInt64(2, revision) ||
+                !history.bindText(3, change.guid) ||
+                !history.bindInt64(4, kind == BookEntry::Kind::COMPUTER ? 1 : 0) ||
+                !history.bindInt64(5, exists ? 1 : 0) ||
+                !history.bindInt64(6, current.kind == BookEntry::Kind::COMPUTER ? 1 : 0) ||
+                !history.bindText(7, current.parent_guid) ||
+                !history.bindInt64(8, current.revision) ||
+                !history.bindInt64(9, current.server_time) ||
+                !history.bindText(10, current.modified_by) ||
+                !history.bindInt64(11, current.deleted ? 1 : 0) ||
+                !history.bindBlob(12, current.payload) ||
+                !history.bindText(13, change.parent_guid) ||
+                !history.bindInt64(14, change.deleted ? 1 : 0) ||
+                !history.bindBlob(15, payload) ||
+                history.step() != SQLITE_DONE)
+            {
+                exec(db_, "ROLLBACK");
+                return false;
+            }
         }
 
         BookChangeResult result;
@@ -721,6 +796,28 @@ bool BookStore::applyChanges(const std::string& book_guid,
             exec(db_, "ROLLBACK");
             return false;
         }
+
+        if (keep_history)
+        {
+            // The label comes from the console and is taken only if it names a revision that has
+            // been. Anything else would have the history say the book went back to a point it
+            // never was at.
+            const int64_t rollback_to =
+                (note.rollback_to > 0 && note.rollback_to < revision) ? note.rollback_to : 0;
+
+            Statement batch(db_,
+                "INSERT OR REPLACE INTO book_batches "
+                "(book_id, revision, server_time, modified_by, address, rollback_to) "
+                "VALUES (?, ?, ?, ?, ?, ?)");
+            if (!batch.isValid() || !batch.bindInt64(1, book_id) ||
+                !batch.bindInt64(2, revision) || !batch.bindInt64(3, now) ||
+                !batch.bindText(4, modified_by) || !batch.bindText(5, note.address) ||
+                !batch.bindInt64(6, rollback_to) || batch.step() != SQLITE_DONE)
+            {
+                exec(db_, "ROLLBACK");
+                return false;
+            }
+        }
     }
 
     if (!exec(db_, "COMMIT"))
@@ -728,6 +825,11 @@ bool BookStore::applyChanges(const std::string& book_guid,
         exec(db_, "ROLLBACK");
         return false;
     }
+
+    // Kept within its bound after every batch rather than once a day: the bound is there because
+    // the disk of the router is small, and a busy day must not be what fills it.
+    if (applied && keep_history && history_policy_.max_changes > 0)
+        pruneHistoryByCount(book_id, history_policy_.max_changes);
 
     *new_revision = applied ? revision : book.revision;
     return true;
@@ -752,6 +854,252 @@ int64_t BookStore::pruneTombstones(const std::string& book_guid, int64_t before)
         return 0;
 
     return sqlite3_changes(db_);
+}
+
+//--------------------------------------------------------------------------------------------------
+bool BookStore::historyBefore(const std::string& book_guid, int64_t before_revision,
+                              int64_t max_batches, int64_t max_changes,
+                              std::vector<BookHistoryBatch>* out, bool* has_more) const
+{
+    if (!out || !has_more || before_revision < 0 || max_batches <= 0)
+        return false;
+
+    out->clear();
+    *has_more = false;
+
+    int64_t book_id = 0;
+    if (!bookIdByGuid(book_guid, &book_id))
+        return false;
+
+    // Zero means from the newest. No revision reaches the largest value, so it stands for "no
+    // bound" without a second form of the query.
+    const int64_t bound =
+        (before_revision == 0) ? std::numeric_limits<int64_t>::max() : before_revision;
+
+    Statement batches(db_,
+        "SELECT revision, server_time, modified_by, address, rollback_to FROM book_batches "
+        "WHERE book_id = ? AND revision < ? ORDER BY revision DESC LIMIT ?");
+    if (!batches.isValid() || !batches.bindInt64(1, book_id) || !batches.bindInt64(2, bound) ||
+        !batches.bindInt64(3, max_batches + 1))
+    {
+        return false;
+    }
+
+    for (;;)
+    {
+        const int result = batches.step();
+        if (result == SQLITE_DONE)
+            break;
+        if (result != SQLITE_ROW)
+            return false;
+
+        // One more than asked for was selected, to tell "this is the last page" from "there is
+        // exactly one batch left" without a second query.
+        if (static_cast<int64_t>(out->size()) >= max_batches)
+        {
+            *has_more = true;
+            break;
+        }
+
+        BookHistoryBatch batch;
+        batch.revision = batches.columnInt64(0);
+        batch.server_time = batches.columnInt64(1);
+        batch.modified_by = batches.columnText(2);
+        batch.address = batches.columnText(3);
+        batch.rollback_to = batches.columnInt64(4);
+        out->emplace_back(std::move(batch));
+    }
+
+    int64_t taken = 0;
+
+    for (size_t i = 0; i < out->size(); ++i)
+    {
+        BookHistoryBatch& batch = (*out)[i];
+
+        Statement changes(db_,
+            "SELECT guid, kind, before_exists, before_kind, before_parent_guid, before_revision, "
+            "before_server_time, before_modified_by, before_deleted, before_payload, "
+            "after_parent_guid, after_deleted, after_payload FROM book_history "
+            "WHERE book_id = ? AND revision = ? ORDER BY guid");
+        if (!changes.isValid() || !changes.bindInt64(1, book_id) ||
+            !changes.bindInt64(2, batch.revision))
+        {
+            return false;
+        }
+
+        for (;;)
+        {
+            const int result = changes.step();
+            if (result == SQLITE_DONE)
+                break;
+            if (result != SQLITE_ROW)
+                return false;
+
+            BookHistoryChange change;
+            change.guid = changes.columnText(0);
+            change.kind = kindFromInt(changes.columnInt64(1));
+            change.has_before = changes.columnInt64(2) != 0;
+
+            if (change.has_before)
+            {
+                change.before.guid = change.guid;
+                change.before.kind = kindFromInt(changes.columnInt64(3));
+                change.before.parent_guid = changes.columnText(4);
+                change.before.revision = changes.columnInt64(5);
+                change.before.server_time = changes.columnInt64(6);
+                change.before.modified_by = changes.columnText(7);
+                change.before.deleted = changes.columnInt64(8) != 0;
+                change.before.payload = changes.columnBlob(9);
+            }
+
+            change.after.guid = change.guid;
+            change.after.kind = change.kind;
+            change.after.parent_guid = changes.columnText(10);
+            change.after.revision = batch.revision;
+            change.after.server_time = batch.server_time;
+            change.after.modified_by = batch.modified_by;
+            change.after.deleted = changes.columnInt64(11) != 0;
+            change.after.deleted_at = change.after.deleted ? batch.server_time : 0;
+            change.after.payload = changes.columnBlob(12);
+
+            batch.changes.emplace_back(std::move(change));
+        }
+
+        taken += static_cast<int64_t>(batch.changes.size());
+
+        // The answer has a size limit of its own; see BookService. The page ends on a whole batch.
+        if (max_changes > 0 && taken >= max_changes && i + 1 < out->size())
+        {
+            out->resize(i + 1);
+            *has_more = true;
+            break;
+        }
+    }
+
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+bool BookStore::oldestHistoryRevision(const std::string& book_guid, int64_t* out) const
+{
+    if (!out)
+        return false;
+
+    Book book;
+    if (!findBook(book_guid, &book))
+        return false;
+
+    int64_t book_id = 0;
+    if (!bookIdByGuid(book_guid, &book_id))
+        return false;
+
+    // Walked down from the newest for as long as the revisions follow each other. Every accepted
+    // batch moves the revision by exactly one, so a missing number is a batch that is not in the
+    // history - one made while it was switched off - and nothing before it can be undone
+    // correctly: the record as that batch left it is simply not known.
+    Statement statement(db_,
+        "SELECT revision FROM book_batches WHERE book_id = ? ORDER BY revision DESC");
+    if (!statement.isValid() || !statement.bindInt64(1, book_id))
+        return false;
+
+    int64_t expected = book.revision;
+
+    for (;;)
+    {
+        const int result = statement.step();
+        if (result == SQLITE_DONE)
+            break;
+        if (result != SQLITE_ROW)
+            return false;
+
+        if (statement.columnInt64(0) != expected)
+            break;
+
+        --expected;
+    }
+
+    *out = expected;
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+int64_t BookStore::pruneHistoryThrough(int64_t book_id, int64_t revision)
+{
+    Statement changes(db_, "DELETE FROM book_history WHERE book_id = ? AND revision <= ?");
+    if (!changes.isValid() || !changes.bindInt64(1, book_id) || !changes.bindInt64(2, revision) ||
+        changes.step() != SQLITE_DONE)
+    {
+        return 0;
+    }
+
+    const int64_t removed = sqlite3_changes(db_);
+
+    Statement batches(db_, "DELETE FROM book_batches WHERE book_id = ? AND revision <= ?");
+    if (!batches.isValid() || !batches.bindInt64(1, book_id) || !batches.bindInt64(2, revision) ||
+        batches.step() != SQLITE_DONE)
+    {
+        LOG(LS_ERROR) << "Unable to remove old batches from the history";
+    }
+
+    return removed;
+}
+
+//--------------------------------------------------------------------------------------------------
+int64_t BookStore::pruneHistoryByCount(int64_t book_id, int64_t max_changes)
+{
+    if (max_changes <= 0)
+        return 0;
+
+    // The revision of the first change beyond the limit, counted from the newest. Everything up to
+    // and including its batch goes: cutting a batch in two would leave half of it impossible to
+    // undo.
+    int64_t through = -1;
+    {
+        Statement statement(db_,
+            "SELECT revision FROM book_history WHERE book_id = ? "
+            "ORDER BY revision DESC LIMIT 1 OFFSET ?");
+        if (!statement.isValid() || !statement.bindInt64(1, book_id) ||
+            !statement.bindInt64(2, max_changes))
+        {
+            return 0;
+        }
+
+        if (statement.step() != SQLITE_ROW)
+            return 0; // Within the limit.
+
+        through = statement.columnInt64(0);
+    }
+
+    return pruneHistoryThrough(book_id, through);
+}
+
+//--------------------------------------------------------------------------------------------------
+int64_t BookStore::pruneHistory(const std::string& book_guid, int64_t before, int64_t max_changes)
+{
+    int64_t book_id = 0;
+    if (!bookIdByGuid(book_guid, &book_id))
+        return 0;
+
+    int64_t removed = 0;
+
+    // By age first: the newest batch older than |before|, and everything up to it.
+    int64_t through = -1;
+    {
+        Statement statement(db_,
+            "SELECT MAX(revision) FROM book_batches WHERE book_id = ? AND server_time < ?");
+        if (statement.isValid() && statement.bindInt64(1, book_id) &&
+            statement.bindInt64(2, before) && statement.step() == SQLITE_ROW &&
+            sqlite3_column_type(statement.get(), 0) != SQLITE_NULL)
+        {
+            through = statement.columnInt64(0);
+        }
+    }
+
+    if (through >= 0)
+        removed += pruneHistoryThrough(book_id, through);
+
+    removed += pruneHistoryByCount(book_id, max_changes);
+    return removed;
 }
 
 //--------------------------------------------------------------------------------------------------
