@@ -24,7 +24,7 @@ project(aspia)
 
 set(ASPIA_VERSION_MAJOR 2)
 set(ASPIA_VERSION_MINOR 7)
-set(ASPIA_VERSION_PATCH 0)
+set(ASPIA_VERSION_PATCH 1)
 
 # On CI installed dir could be outside of vcpkg root
 if ("$ENV{VCPKG_INSTALLED_DIR}" STREQUAL "")
