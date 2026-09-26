@@ -259,6 +259,20 @@ int Version::compareToWildcardString(std::u16string_view wildcard_string) const
 }
 
 //--------------------------------------------------------------------------------------------------
+Version Version::toShort() const
+{
+    if (!isValid())
+        return Version();
+
+    std::vector<uint32_t> components(components_.begin(),
+                                     components_.begin() + std::min<size_t>(components_.size(), 3));
+    while (components.size() < 3)
+        components.push_back(0);
+
+    return Version(components);
+}
+
+//--------------------------------------------------------------------------------------------------
 int Version::compareTo(const Version& other) const
 {
     if (!other.isValid() && !isValid())

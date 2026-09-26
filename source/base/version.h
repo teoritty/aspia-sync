@@ -81,6 +81,11 @@ public:
 
     const std::vector<uint32_t>& components() const { return components_; }
 
+    // The release alone: major, minor and patch, without the build number. The build number is
+    // the count of commits the binary was built from, so two builds of the same release made from
+    // different checkouts differ in it and in nothing that matters to the protocol.
+    Version toShort() const;
+
     proto::Version toProto() const;
     static Version fromProto(const proto::Version& proto_version);
 

@@ -425,8 +425,9 @@ void Client::startAuthentication()
                 channel_->setChannelIdSupport(true);
             }
 
-            const base::Version& client_version = base::Version::kCurrentFullVersion;
-            if (host_version > client_version)
+            // By release only, for the same reason as with the router: see client/router.cc.
+            const base::Version& client_version = base::Version::kCurrentShortVersion;
+            if (host_version.toShort() > client_version)
             {
                 LOG(LS_ERROR) << "Version mismatch (host: " << host_version.toString()
                               << " client: " << client_version.toString();

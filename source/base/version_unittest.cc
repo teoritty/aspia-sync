@@ -238,4 +238,16 @@ TEST(VersionTest, IsValidWildcardString)
     }
 }
 
+// Two builds of one release made from different checkouts differ only in the build number, and
+// must not be told apart by it.
+TEST(VersionTest, ToShortDropsTheBuildNumber)
+{
+    EXPECT_EQ(base::Version(2, 7, 1, 1935).toShort(), base::Version(2, 7, 1));
+    EXPECT_EQ(base::Version(2, 7, 1, 1935).toShort(), base::Version(2, 7, 1, 1).toShort());
+    EXPECT_FALSE(base::Version(2, 7, 1, 1935).toShort() > base::Version(2, 7, 1));
+    EXPECT_TRUE(base::Version(2, 8, 0, 1).toShort() > base::Version(2, 7, 1));
+    EXPECT_EQ(base::Version(u"2.7").toShort(), base::Version(2, 7, 0));
+    EXPECT_FALSE(base::Version().toShort().isValid());
+}
+
 } // namespace

@@ -252,8 +252,11 @@ void Router::onTcpConnected()
                 channel_->setChannelIdSupport(true);
             }
 
-            const base::Version& client_version = base::Version::kCurrentFullVersion;
-            if (router_version > client_version)
+            // Compared by release only. The build number is how many commits the binary was built
+            // from, so a router built a commit later than the console would otherwise lock the
+            // console out of managing it although nothing between them differs.
+            const base::Version& client_version = base::Version::kCurrentShortVersion;
+            if (router_version.toShort() > client_version)
             {
                 LOG(LS_ERROR) << "Version mismatch (router: " << router_version.toString()
                               << " client: " << client_version.toString();
