@@ -68,6 +68,7 @@ Compatibility
 
 - Existing `.aab` files open as before. The GUIDs added to them are ignored by a stock 2.7 console, but a stock console that **saves** the file drops them, so do not edit one book with both.
 - Hosts, clients and relays of Aspia 2.7 keep working with this fork. Their code and the connection protocol are those of 2.7.0; the Router only gained new messages and a channel of its own for address books.
+- A Console or Client refuses a Host, and the Router Manager refuses a Router, whose version is newer than its own. A stock 2.7.0 Console compares the build number too, so it refuses every build of this fork. Update the Consoles and Clients first, then the Router and the Hosts. This fork compares the release alone (2.8.0, not 2.8.0.4926), so builds of one release from different commits accept each other.
 
 Releases
 --------
