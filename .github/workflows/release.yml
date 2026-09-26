@@ -101,6 +101,18 @@ jobs:
         with:
           arch: x64
 
+      # The action exports everything vcvars sets, VCPKG_ROOT included: the vcpkg that comes with
+      # Visual Studio, which refuses a manifest without a baseline. The dependencies are those of
+      # the submodule, so it is put back. Ninja comes with Visual Studio too and is checked here,
+      # rather than an hour into the build.
+      - name: Point vcpkg at the submodule
+        shell: pwsh
+        run: |
+          "VCPKG_ROOT=$env:GITHUB_WORKSPACE\vcpkg4aspia" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $ninja = Get-Command ninja -ErrorAction SilentlyContinue
+          if (-not $ninja) { Write-Error "Ninja is not on PATH"; exit 1 }
+          Write-Host "Ninja: $($ninja.Source)"
+
       # The runner has MinGW, Strawberry Perl and Git for Windows installed. CMake would find zstd
       # there and bring MinGW headers into the build, see tools/build/README.md.
       - name: Configure and install the dependencies
