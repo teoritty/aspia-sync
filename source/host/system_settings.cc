@@ -229,7 +229,10 @@ void SystemSettings::setUserList(const base::UserList& users)
 //--------------------------------------------------------------------------------------------------
 std::u16string SystemSettings::updateServer() const
 {
-    return settings_.get<std::u16string>("UpdateServer", DEFAULT_UPDATE_SERVER);
+    std::u16string server = settings_.get<std::u16string>("UpdateServer", DEFAULT_UPDATE_SERVER);
+    if (server == LEGACY_UPDATE_SERVER || server == LEGACY_UPDATE_SERVER u"/")
+        return DEFAULT_UPDATE_SERVER;
+    return server;
 }
 
 //--------------------------------------------------------------------------------------------------

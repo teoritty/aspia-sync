@@ -308,7 +308,9 @@ set_property(TARGET aspia_client_core PROPERTY AUTOMOC ON)
 set_property(TARGET aspia_client_core PROPERTY AUTOUIC ON)
 set_property(TARGET aspia_client_core PROPERTY AUTORCC ON)
 
-add_executable(aspia_client_tests file_transfer_queue_builder_unittest.cc)
+add_executable(aspia_client_tests
+    file_transfer_queue_builder_unittest.cc
+    ${PROJECT_SOURCE_DIR}/source/common/update_info_unittest.cc)
 target_link_libraries(aspia_client_tests PRIVATE
     aspia_client_core
     GTest::gtest

@@ -96,7 +96,10 @@
 #endif
 
 #define DEFAULT_LOCALE        u"en"
-#define DEFAULT_UPDATE_SERVER u"https://update.aspia.net"
+#define DEFAULT_UPDATE_SERVER u"https://github.com/teoritty/aspia-sync"
+// The default of upstream Aspia. Settings that still hold it are read as the default above: what
+// comes from there is not a build of this fork, and the host would install it on its own.
+#define LEGACY_UPDATE_SERVER  u"https://update.aspia.net"
 
 #define DEFAULT_HOST_TCP_PORT             8050
 #define DEFAULT_ROUTER_TCP_PORT           8060

@@ -25,6 +25,7 @@
 #include "base/net/curl_util.h"
 #include "base/strings/unicode.h"
 #include "build/build_config.h"
+#include "common/update_info.h"
 
 namespace common {
 
@@ -177,25 +178,37 @@ void UpdateChecker::run()
 
     const base::Version& version = base::Version::kCurrentShortVersion;
 
-    std::u16string unicode_url(update_server_);
-    unicode_url += u"/update.php?";
-    unicode_url += u"package=" + package_name_;
-    unicode_url += u'&';
-    unicode_url += u"version=" + version.toString(3);
+    // A repository on GitHub is asked for its latest release, any other server as an update
+    // server is.
+    const std::string repository = gitHubRepository(update_server_);
 
-    if (!os.empty())
+    std::string url;
+    if (!repository.empty())
     {
-        unicode_url += u'&';
-        unicode_url += u"os=" + os;
+        url = "https://api.github.com/repos/" + repository + "/releases/latest";
     }
-
-    if (!arch.empty())
+    else
     {
+        std::u16string unicode_url(update_server_);
+        unicode_url += u"/update.php?";
+        unicode_url += u"package=" + package_name_;
         unicode_url += u'&';
-        unicode_url += u"arch=" + arch;
-    }
+        unicode_url += u"version=" + version.toString(3);
 
-    std::string url = base::local8BitFromUtf16(unicode_url);
+        if (!os.empty())
+        {
+            unicode_url += u'&';
+            unicode_url += u"os=" + os;
+        }
+
+        if (!arch.empty())
+        {
+            unicode_url += u'&';
+            unicode_url += u"arch=" + arch;
+        }
+
+        url = base::local8BitFromUtf16(unicode_url);
+    }
 
     LOG(LS_INFO) << "Start checking for updates. Url: " << url;
 
@@ -206,6 +219,8 @@ void UpdateChecker::run()
     curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1);
     curl_easy_setopt(curl.get(), CURLOPT_VERBOSE, 1);
     curl_easy_setopt(curl.get(), CURLOPT_DEBUGFUNCTION, debugFunc);
+    // The API of GitHub refuses a request that does not say who makes it.
+    curl_easy_setopt(curl.get(), CURLOPT_USERAGENT, "aspia-sync");
 
     long verify_peer = 1;
     if (base::Environment::has("ASPIA_NO_VERIFY_TLS_PEER"))
@@ -251,6 +266,30 @@ void UpdateChecker::run()
     while (still_running);
 
     curl_multi_remove_handle(multi_curl.get(), curl.get());
+
+    if (!repository.empty() && !thread_.isStopping())
+    {
+        long response_code = 0;
+        curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &response_code);
+
+        if (response_code == 404)
+        {
+            // A repository without a published release has no updates.
+            LOG(LS_INFO) << "No releases in " << repository;
+            response = UpdateInfo().toXml();
+        }
+        else if (response_code != 200)
+        {
+            LOG(LS_ERROR) << "GitHub answered " << response_code << ": "
+                          << base::toStdString(response);
+            response.clear();
+        }
+        else if (!response.empty())
+        {
+            // The rest of the program reads what an update server answers.
+            response = UpdateInfo::fromGitHubRelease(response, repository, package_name_).toXml();
+        }
+    }
 
     if (!thread_.isStopping())
     {

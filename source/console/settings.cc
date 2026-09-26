@@ -245,7 +245,13 @@ void Settings::setCheckUpdates(bool check)
 //--------------------------------------------------------------------------------------------------
 QString Settings::updateServer() const
 {
-    return settings_.value(kUpdateServerParam, DEFAULT_UPDATE_SERVER).toString().toLower();
+    QString server = settings_.value(kUpdateServerParam, DEFAULT_UPDATE_SERVER).toString().toLower();
+    if (server == QString::fromStdU16String(LEGACY_UPDATE_SERVER) ||
+        server == QString::fromStdU16String(LEGACY_UPDATE_SERVER u"/"))
+    {
+        return QString::fromStdU16String(DEFAULT_UPDATE_SERVER);
+    }
+    return server;
 }
 
 //--------------------------------------------------------------------------------------------------
