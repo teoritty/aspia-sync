@@ -28,10 +28,14 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
+      full: ${{ steps.version.outputs.full }}
       deps: ${{ steps.version.outputs.deps }}
     steps:
+      # The whole history, for the build number below.
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # The version lives in CMakeLists.txt and goes into the programs and the installers. A tag
       # that says something else would publish files that disagree with their own release.
@@ -49,6 +53,13 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          # The programs carry a fourth part, the number of commits, and compare each other by it
+          # where they are older than this fork. Worked out once here, and every job checks that
+          # what it built says the same, so the router and the console of one release never
+          # disagree about which build they are.
+          full="$version.$(git rev-list --count HEAD)"
+          echo "Full version: $full"
+          echo "full=$full" >> "$GITHUB_OUTPUT"
           # The dependencies are fixed by the manifest and by the vcpkg commit; the cache follows both.
           deps="$(git rev-parse HEAD:vcpkg4aspia)-$(sha256sum vcpkg.json | cut -c1-16)"
           echo "deps=$deps" >> "$GITHUB_OUTPUT"
@@ -60,6 +71,7 @@ jobs:
     timeout-minutes: 360
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      FULL_VERSION: ${{ needs.version.outputs.full }}
       VCPKG_ROOT: ${{ github.workspace }}\vcpkg4aspia
       VCPKG_TRIPLET: x64-windows-static
       VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
@@ -118,6 +130,21 @@ jobs:
         shell: pwsh
         run: ctest --test-dir builds/ninja-multi-vcpkg-ci --build-config Release --output-on-failure
 
+      - name: Check the version of the programs
+        shell: pwsh
+        run: |
+          $failed = $false
+          foreach ($name in "console", "client", "host", "host_service", "router", "relay") {
+            $file = Join-Path $env:BIN_DIR "aspia_$name.exe"
+            $found = (Get-Item $file).VersionInfo.FileVersion
+            Write-Host "aspia_$name.exe: $found"
+            if ($found -ne $env:FULL_VERSION) {
+              Write-Host "::error::aspia_$name.exe is $found, expected $env:FULL_VERSION"
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
+
       # installer/build.cmd needs WiX 3 and the MSI scripts of the Windows SDK, and it names an old
       # SDK that the runner does not have. The newest SDK that has the scripts is used instead.
       - name: Set up WiX and the Windows SDK scripts
@@ -169,6 +196,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     env:
+      FULL_VERSION: ${{ needs.version.outputs.full }}
       VCPKG_CACHE: ${{ github.workspace }}/../vcpkg-cache
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/../vcpkg-cache,readwrite
     steps:
@@ -198,6 +226,21 @@ jobs:
         run: |
           mkdir -p "$VCPKG_CACHE"
           tools/build/build_router_linux.sh
+
+      # The version is in the binary as a string of its own; see source/build/version.h.
+      - name: Check the version of the router
+        run: |
+          router=$(find builds/linux-router -type f -name aspia_router -perm -u+x | head -n 1)
+          if [ -z "$router" ]; then
+            echo "::error::The router binary was not found"
+            exit 1
+          fi
+          if ! strings -a "$router" | grep -qxF "$FULL_VERSION"; then
+            echo "::error::$router does not say it is $FULL_VERSION"
+            strings -a "$router" | grep -xE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' || true
+            exit 1
+          fi
+          echo "$router: $FULL_VERSION"
 
       - name: Save the vcpkg cache
         if: always()
