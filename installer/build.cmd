@@ -4,8 +4,10 @@ if not defined SDK_VERSION set SDK_VERSION=10.0.18362.0
 
 set ASPIA_VERSION=%1
 set ASPIA_ARCH=%2
-set ASPIA_SRC_DIR=%3
-set ASPIA_BIN_DIR=%4
+rem The directories may come quoted. The quotes are taken off: ASPIA_BIN_DIR goes into the
+rem .wxs files through version.wxi, and WiX refuses a path with a quote in it.
+set ASPIA_SRC_DIR=%~3
+set ASPIA_BIN_DIR=%~4
 
 if "%ASPIA_VERSION%" == "" ( goto :USAGE )
 if "%ASPIA_ARCH%" == "" ( goto :USAGE )
@@ -39,7 +41,7 @@ goto :END
 
 :MSI
 rem Set working directory
-pushd %SRC_DIR%
+pushd "%SRC_DIR%"
 
 echo "##################################################"
 echo "Creating MSI packages for Aspia Console"
@@ -293,7 +295,7 @@ echo "Creating MSI packages for Aspia Relay"
 
 echo "##################################################"
 echo "Calculate SHA256 for binaries"
-%ASPIA_BIN_DIR%\aspia_sha256.exe > %ASPIA_BIN_DIR%\windows-%ASPIA_ARCH%-sha256.txt
+"%ASPIA_BIN_DIR%\aspia_sha256.exe" > "%ASPIA_BIN_DIR%\windows-%ASPIA_ARCH%-sha256.txt"
 
 rem Restore working directory
 popd
